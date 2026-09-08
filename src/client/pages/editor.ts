@@ -561,6 +561,13 @@ editor.addEventListener("paste", (event) => {
   event.preventDefault();
   document.execCommand("insertText", false, event.clipboardData?.getData("text/plain") ?? "");
 });
+editor.addEventListener("keydown", (event) => {
+  if (event.key !== "Tab") return;
+  event.preventDefault();
+  // A raw tab character collapses to a single space under normal CSS
+  // whitespace rules, so insert non-breaking spaces to render a visible indent.
+  document.execCommand("insertText", false, "\u00A0\u00A0\u00A0\u00A0");
+});
 manuscriptTitle.addEventListener("input", () => {
   manuscript.frontmatter.title = manuscriptTitle.value.trim() || "Untitled Manuscript";
   changed();
@@ -650,7 +657,15 @@ try {
     const status = await response.json();
     isDesktop = status.isDesktop === true;
     desktopFileLoaded = typeof status.activeFile === "string";
-    if (desktopFileLoaded && status.activeFile) {
+    if (desktopFileLoaded && typeof status.content === "string" && status.activeFile) {
+      manuscript = parseManuscript(status.content, status.activeFile);
+      activeChapter = 0;
+      fileHandle = null;
+      canWrite = false;
+      saveStatus.textContent = `Active file: ${status.activeFile}`;
+      modal.classList.add("hidden");
+      saveLocal();
+    } else if (desktopFileLoaded && status.activeFile) {
       manuscript.filename = status.activeFile;
       element("#filename").textContent = status.activeFile;
       saveStatus.textContent = `Active file: ${status.activeFile}`;

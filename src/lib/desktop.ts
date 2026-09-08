@@ -36,7 +36,7 @@ export async function defaultChooseFile(
       "-Command",
       `Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.${dialog}; ` +
       `$d.Filter='Markdown (*.md;*.markdown;*.txt)|*.md;*.markdown;*.txt'; ` +
-      `$d.FileName='${suggestedName.replaceAll("'", "") }'; ` +
+      `$d.FileName='${suggestedName.replaceAll("'", "")}'; ` +
       `if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}`,
     ];
   }
@@ -64,5 +64,60 @@ export async function defaultIsDesktop(): Promise<boolean> {
     return runPerm.state === "granted" && writePerm.state === "granted";
   } catch {
     return false;
+  }
+}
+
+function appStateDir(): string | null {
+  const home = Deno.env.get("HOME");
+  if (Deno.build.os === "linux") {
+    const base = Deno.env.get("XDG_DATA_HOME") || (home ? `${home}/.local/share` : null);
+    return base ? `${base}/writasaurus` : null;
+  }
+  if (Deno.build.os === "darwin") {
+    return home ? `${home}/Library/Application Support/writasaurus` : null;
+  }
+  const base = Deno.env.get("LOCALAPPDATA") || Deno.env.get("APPDATA");
+  return base ? `${base}\\writasaurus` : null;
+}
+
+function lastFilePath(): string | null {
+  const dir = appStateDir();
+  return dir ? `${dir}/last-file.json` : null;
+}
+
+export async function loadLastFilePath(): Promise<string | null> {
+  try {
+    const path = lastFilePath();
+    if (!path) return null;
+    const data = JSON.parse(await Deno.readTextFile(path));
+    return typeof data?.path === "string" ? data.path : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveLastFilePath(path: string): Promise<void> {
+  try {
+    const statePath = lastFilePath();
+    if (!statePath) return;
+    const dir = appStateDir();
+    if (dir) await Deno.mkdir(dir, { recursive: true });
+    await Deno.writeTextFile(statePath, JSON.stringify({ path }));
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotCapable)) {
+      console.warn("Could not remember the last opened file.", error);
+    }
+  }
+}
+
+export async function clearLastFilePath(): Promise<void> {
+  try {
+    const statePath = lastFilePath();
+    if (!statePath) return;
+    await Deno.remove(statePath);
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound) && !(error instanceof Deno.errors.NotCapable)) {
+      console.warn("Could not clear the last opened file.", error);
+    }
   }
 }

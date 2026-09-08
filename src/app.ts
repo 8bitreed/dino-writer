@@ -3,13 +3,22 @@ import { type Route, route } from "@std/http/unstable-route";
 import { basename } from "@std/path";
 import { type AssetResolver, loadAssets } from "./lib/assets.ts";
 import { editorView } from "./views/pages/editor-view.ts";
-import { defaultChooseFile, defaultIsDesktop } from "./lib/desktop.ts";
+import {
+  clearLastFilePath,
+  defaultChooseFile,
+  defaultIsDesktop,
+  loadLastFilePath,
+  saveLastFilePath,
+} from "./lib/desktop.ts";
 
 export interface EditorApiOptions {
   isDesktop?: () => Promise<boolean> | boolean;
   chooseFile?: (action: "open" | "save", suggestedName?: string) => Promise<string | null>;
   readTextFile?: (path: string) => Promise<string>;
   writeTextFile?: (path: string, content: string) => Promise<void>;
+  loadLastFilePath?: () => Promise<string | null>;
+  saveLastFilePath?: (path: string) => Promise<void>;
+  clearLastFilePath?: () => Promise<void>;
 }
 
 export interface AppOptions {
@@ -21,7 +30,6 @@ export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Pr
   fetch(req: Request, info?: Deno.ServeHandlerInfo): Response | Promise<Response>;
   request(url: string | URL, init?: RequestInit): Promise<Response>;
 };
-
 
 export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Promise<App> {
   const options = typeof assetOrOptions === "function"
@@ -35,8 +43,12 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
   const readTextFile = apiOptions.readTextFile ?? ((p: string) => Deno.readTextFile(p));
   const writeTextFile = apiOptions.writeTextFile ??
     ((p: string, c: string) => Deno.writeTextFile(p, c));
+  const loadLastFile = apiOptions.loadLastFilePath ?? loadLastFilePath;
+  const saveLastFile = apiOptions.saveLastFilePath ?? saveLastFilePath;
+  const clearLastFile = apiOptions.clearLastFilePath ?? clearLastFilePath;
 
   let activePath: string | null = null;
+  let restoredLastFile = false;
 
   const routes: Route[] = [
     {
@@ -65,12 +77,35 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
     {
       pattern: new URLPattern({ pathname: "/api/editor/status" }),
       method: "GET",
-      handler: async () =>
-        Response.json({
-          isDesktop: await isDesktop(),
+      handler: async () => {
+        const desktop = await isDesktop();
+
+        if (desktop && !activePath && !restoredLastFile) {
+          restoredLastFile = true;
+          const lastPath = await loadLastFile();
+          if (lastPath) {
+            try {
+              const content = await readTextFile(lastPath);
+              activePath = lastPath;
+              return Response.json({
+                isDesktop: true,
+                activeFile: basename(activePath),
+                activePath,
+                content,
+              });
+            } catch (error) {
+              console.warn("Could not reopen the last file.", error);
+              await clearLastFile();
+            }
+          }
+        }
+
+        return Response.json({
+          isDesktop: desktop,
           activeFile: activePath ? basename(activePath) : null,
           activePath,
-        }),
+        });
+      },
     },
     {
       pattern: new URLPattern({ pathname: "/api/editor/save" }),
@@ -90,6 +125,7 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
             return new Response(null, { status: 204 });
           }
           activePath = chosen;
+          await saveLastFile(activePath);
         }
 
         await writeTextFile(activePath, payload.content);
@@ -111,6 +147,7 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
         try {
           const content = await readTextFile(chosen);
           activePath = chosen;
+          await saveLastFile(activePath);
           return Response.json({
             ok: true,
             name: basename(activePath),
@@ -126,8 +163,10 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
     {
       pattern: new URLPattern({ pathname: "/api/editor/close" }),
       method: "POST",
-      handler: () => {
+      handler: async () => {
         activePath = null;
+        restoredLastFile = true;
+        await clearLastFile();
         return Response.json({ ok: true });
       },
     },

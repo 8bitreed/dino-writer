@@ -139,3 +139,59 @@ Deno.test("editor-api: open file loads manuscript and close resets active file",
   const status2 = await (await app.request("/api/editor/status")).json();
   assertEquals(status2.activeFile, null);
 });
+
+Deno.test("editor-api: status auto-restores the last opened file on first check", async () => {
+  const disk = new Map<string, string>([
+    ["/home/user/docs/novel.md", "# Restored Novel"],
+  ]);
+  let cleared = false;
+
+  const app = await createApp({
+    asset: mockAsset,
+    editorApiOptions: {
+      isDesktop: () => true,
+      readTextFile: (path) => {
+        const content = disk.get(path);
+        if (!content) throw new Error("File not found");
+        return Promise.resolve(content);
+      },
+      loadLastFilePath: () => Promise.resolve("/home/user/docs/novel.md"),
+      clearLastFilePath: () => {
+        cleared = true;
+        return Promise.resolve();
+      },
+    },
+  });
+
+  const status1 = await (await app.request("/api/editor/status")).json();
+  assertEquals(status1.activeFile, "novel.md");
+  assertEquals(status1.content, "# Restored Novel");
+  assert(!cleared);
+
+  // Subsequent status checks don't re-read the file from disk.
+  disk.delete("/home/user/docs/novel.md");
+  const status2 = await (await app.request("/api/editor/status")).json();
+  assertEquals(status2.activeFile, "novel.md");
+  assertEquals(status2.content, undefined);
+});
+
+Deno.test("editor-api: status clears an unreadable last file path", async () => {
+  let cleared = false;
+
+  const app = await createApp({
+    asset: mockAsset,
+    editorApiOptions: {
+      isDesktop: () => true,
+      readTextFile: () => Promise.reject(new Error("missing")),
+      loadLastFilePath: () => Promise.resolve("/home/user/docs/missing.md"),
+      clearLastFilePath: () => {
+        cleared = true;
+        return Promise.resolve();
+      },
+    },
+  });
+
+  const status = await (await app.request("/api/editor/status")).json();
+  assertEquals(status.activeFile, null);
+  assert(cleared);
+});
