@@ -71,14 +71,14 @@ character counts. Browsers without direct file access use normal uploads and dow
 records them in `dist/manifest.json`.
 
 `src/lib/assets.ts` exposes an `asset()` helper that resolves asset names to their hashed script and
-styles. The layout calls it to inject the stylesheet and module script with CSP nonces.
+styles. The layout calls it to inject the stylesheet and module script.
 
 Files under `src/client/static/` bypass bundling and hashing. For example,
 `src/client/static/robots.txt` is copied to `dist/robots.txt`.
 
 ## Secure defaults
 
-Tagged template literal function `html` automatically escapes interpolated strings. Middleware
-provides a nonce-based CSP, secure headers, static-file containment, and method handling. Desktop
-and server tasks grant only the network, environment, and file permissions needed by the
-application.
+Tagged template literal function `html` automatically escapes interpolated strings. All script and
+style loading uses external files (no inline scripts), so the root route sends a strict
+Content-Security-Policy (`script-src 'self'; style-src 'self'`) without needing a nonce. Desktop and
+server tasks grant only the network, environment, and file permissions needed by the application.

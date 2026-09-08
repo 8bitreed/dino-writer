@@ -65,11 +65,10 @@ function editorTemplate(): HtmlEscapedString {
   `;
 }
 
-export function editorView(asset: AssetResolver, nonce?: string): HtmlEscapedString {
+export function editorView(asset: AssetResolver): HtmlEscapedString {
   return renderLayout(asset, {
     title: "Manuscript",
     bodyClass: "editor-mode",
     content: editorTemplate(),
-    nonce,
   });
 }

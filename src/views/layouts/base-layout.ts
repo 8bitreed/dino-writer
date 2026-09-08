@@ -5,7 +5,6 @@ export interface LayoutOptions {
   title?: string;
   bodyClass?: string;
   content: HtmlEscapedString | string;
-  nonce?: string;
 }
 
 export function renderLayout(
@@ -16,7 +15,6 @@ export function renderLayout(
     title = "Manuscript",
     bodyClass = "",
     content,
-    nonce,
   } = options;
 
   const { script, styles } = asset("editor");
@@ -31,7 +29,7 @@ export function renderLayout(
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <title>${title}</title>
         ${styles.map((href) => html`<link rel="stylesheet" href="${href}">`)}
-        <script type="module" src="${script}" nonce="${nonce ?? ""}"></script>
+        <script type="module" src="${script}"></script>
       </head>
       <body class="${bodyClass}">
         ${content}

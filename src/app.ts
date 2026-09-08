@@ -115,13 +115,12 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
             headers: { Allow: "GET, HEAD" },
           });
         }
-        const nonce = btoa(crypto.randomUUID());
-        const page = editorView(asset, nonce);
+        const page = editorView(asset);
         return new Response(page.toString(), {
           headers: {
             "content-type": "text/html; charset=utf-8",
             "content-security-policy":
-              `default-src 'none'; script-src 'self' 'nonce-${nonce}'; style-src 'self'; img-src 'self' data:; connect-src 'self'`,
+              "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'",
           },
         });
       },
