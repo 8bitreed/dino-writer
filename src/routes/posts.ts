@@ -1,10 +1,9 @@
-// @ts-check
 import { Hono } from "@hono/hono";
 import { html, raw } from "@hono/hono/html";
-import { listPosts, readPost, renderMarkdown } from "../lib/posts.js";
+import { listPosts, readPost, renderMarkdown } from "../lib/posts.ts";
+import type { LayoutFunction } from "../views/layout.ts";
 
-/** @param {ReturnType<import("../views/layout.js").createLayout>} layout */
-export function postRoutes(layout) {
+export function postRoutes(layout: LayoutFunction): Hono {
   return new Hono()
     .get("/", async (c) => {
       const posts = await listPosts();

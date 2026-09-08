@@ -1,4 +1,3 @@
-// @ts-check
 import "./app.css";
 
 const root = document.documentElement;

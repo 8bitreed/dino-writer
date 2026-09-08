@@ -1,10 +1,9 @@
-// @ts-check
 import { Hono } from "@hono/hono";
 import { html } from "@hono/hono/html";
-import { nameGrid } from "../views/names.js";
+import { nameGrid } from "../views/names.ts";
+import type { LayoutFunction } from "../views/layout.ts";
 
-/** @param {ReturnType<import("../views/layout.js").createLayout>} layout */
-export function pageRoutes(layout) {
+export function pageRoutes(layout: LayoutFunction): Hono {
   return new Hono()
     .get("/health", (c) => c.text("ok"))
     .get("/about", (c) =>

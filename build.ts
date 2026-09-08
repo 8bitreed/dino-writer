@@ -1,4 +1,3 @@
-// @ts-check
 import { join } from "@std/path";
 
 const clientDir = "src/client";
@@ -8,28 +7,24 @@ const distDir = "dist";
 const assetsDir = join(distDir, "assets");
 const manifestPath = join(distDir, "manifest.json");
 
-/**
- * @param {BufferSource} data
- * @returns {Promise<string>}
- */
-async function hash(data) {
+async function hash(data: BufferSource): Promise<string> {
   const buffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(buffer));
   const hex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   return hex.slice(0, 8);
 }
 
-/**
- * @returns {Promise<Array<{name: string, src: string}>>}
- */
-async function getEntries() {
-  /** @type {Array<{name: string, src: string}>} */
-  const entries = [{ name: "app", src: `${clientDir}/app.js` }];
+async function getEntries(): Promise<Array<{ name: string; src: string }>> {
+  const hasTsApp = await Deno.stat(`${clientDir}/app.ts`).then(() => true).catch(() => false);
+  const entries: Array<{ name: string; src: string }> = [
+    { name: "app", src: hasTsApp ? `${clientDir}/app.ts` : `${clientDir}/app.js` },
+  ];
   try {
     for await (const entry of Deno.readDir(pagesDir)) {
-      if (entry.isFile && entry.name.endsWith(".js")) {
+      if (entry.isFile && (entry.name.endsWith(".ts") || entry.name.endsWith(".js"))) {
+        const name = entry.name.replace(/\.(ts|js)$/, "");
         entries.push({
-          name: entry.name.slice(0, -3),
+          name,
           src: `${pagesDir}/${entry.name}`,
         });
       }
@@ -40,11 +35,7 @@ async function getEntries() {
   return entries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/**
- * @param {string} srcDir
- * @param {string} destDir
- */
-async function copyDir(srcDir, destDir) {
+async function copyDir(srcDir: string, destDir: string): Promise<void> {
   try {
     for await (const entry of Deno.readDir(srcDir)) {
       const srcPath = join(srcDir, entry.name);
@@ -61,7 +52,7 @@ async function copyDir(srcDir, destDir) {
   }
 }
 
-export async function build() {
+export async function build(): Promise<void> {
   const startTime = performance.now();
   const entries = await getEntries();
 
@@ -84,8 +75,13 @@ export async function build() {
       if (!(error instanceof Deno.errors.NotFound)) throw error;
     }
 
-    /** @type {Record<string, {file: string, name: string, src: string, isEntry: boolean, css?: string[]}>} */
-    const manifest = {};
+    const manifest: Record<string, {
+      file: string;
+      name: string;
+      src: string;
+      isEntry: boolean;
+      css?: string[];
+    }> = {};
 
     for (const entry of entries) {
       const outJs = join(tempDir, `${entry.name}.js`);
@@ -113,8 +109,7 @@ export async function build() {
       await Deno.writeFile(join(assetsDir, hashedJsName), jsData);
 
       const outCss = join(tempDir, `${entry.name}.css`);
-      /** @type {string[]} */
-      const cssFiles = [];
+      const cssFiles: string[] = [];
       try {
         const cssData = await Deno.readFile(outCss);
         const cssHash = await hash(cssData);
@@ -149,8 +144,7 @@ if (import.meta.main) {
 
   if (Deno.args.includes("--watch")) {
     console.log("Watching src/client for changes...");
-    /** @type {ReturnType<typeof setTimeout> | undefined} */
-    let timer;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const watcher = Deno.watchFs("src/client");
     for await (const event of watcher) {
       if (event.kind === "access") continue;

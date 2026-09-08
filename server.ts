@@ -1,5 +1,4 @@
-// @ts-check
-import { createApp } from "./src/app.js";
+import { createApp } from "./src/app.ts";
 
 const app = await createApp();
 

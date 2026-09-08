@@ -1,4 +1,3 @@
-// @ts-check
 import "./name-gen.css";
 
 const button = document.querySelector("#generate-names");

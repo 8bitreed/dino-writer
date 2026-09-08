@@ -1,5 +1,3 @@
-// @ts-check
-
 const characters = [
   "ael",
   "beo",
@@ -77,13 +75,11 @@ const endings = [
   "worth",
 ];
 
-/** @param {string[]} values */
-const pick = (values) => values[crypto.getRandomValues(new Uint32Array(1))[0] % values.length];
-/** @param {string} value */
-const capitalize = (value) => (value[0]?.toUpperCase() ?? "") + value.slice(1);
+const pick = (values: string[]): string =>
+  values[crypto.getRandomValues(new Uint32Array(1))[0] % values.length];
+const capitalize = (value: string): string => (value[0]?.toUpperCase() ?? "") + value.slice(1);
 
-/** @param {string[]} parts @param {string[] | null} endingsList */
-function generate(parts, endingsList = null) {
+function generate(parts: string[], endingsList: string[] | null = null): string {
   const count = 2 + crypto.getRandomValues(new Uint8Array(1))[0] % 2;
   let name = "";
   for (let index = 0; index < count; index++) {
@@ -92,8 +88,7 @@ function generate(parts, endingsList = null) {
   return capitalize(name);
 }
 
-/** @param {number} [count] */
-export function generateNames(count = 8) {
+export function generateNames(count = 8): { characters: string[]; places: string[] } {
   return {
     characters: Array.from({ length: count }, () => generate(characters)),
     places: Array.from({ length: count }, () => generate(places, endings)),

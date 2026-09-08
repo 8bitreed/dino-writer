@@ -1,26 +1,32 @@
-// @ts-check
-
 const directory = "./src/posts";
 
-/** @param {string} value */
-const escape = (value) =>
+export interface Post {
+  slug: string;
+  title: string;
+  date: string;
+  excerpt: string;
+}
+
+export interface PostDetails {
+  title: string;
+  body: string;
+}
+
+const escape = (value: string): string =>
   value.replace(
     /[&<>"']/g,
-    (character) =>
-      /** @type {Record<string, string>} */ ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[character],
+    (character) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[character] ?? character),
   );
 
-/** @param {string} content */
-function parse(content) {
+function parse(content: string): { metadata: Record<string, string>; body: string } {
   const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
-  /** @type {Record<string, string>} */
-  const metadata = {};
+  const metadata: Record<string, string> = {};
   if (!match) return { metadata, body: content };
   for (const line of match[1].split(/\r?\n/)) {
     const pair = line.match(/^([\w-]+):\s*(.*)$/);
@@ -29,20 +35,17 @@ function parse(content) {
   return { metadata, body: match[2] };
 }
 
-/** @param {string} value */
-function inline(value) {
+function inline(value: string): string {
   return escape(value)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
-/** @param {string} source */
-export function renderMarkdown(source) {
+export function renderMarkdown(source: string): string {
   const lines = source.trim().split(/\r?\n/);
-  const output = [];
-  /** @type {string[]} */
-  let paragraph = [];
+  const output: string[] = [];
+  let paragraph: string[] = [];
   let inList = false;
   const flush = () => {
     if (paragraph.length) output.push(`<p>${inline(paragraph.join(" "))}</p>`);
@@ -79,8 +82,8 @@ export function renderMarkdown(source) {
   return output.join("");
 }
 
-export async function listPosts() {
-  const posts = [];
+export async function listPosts(): Promise<Post[]> {
+  const posts: Post[] = [];
   for await (const entry of Deno.readDir(directory)) {
     if (!entry.isFile || !entry.name.endsWith(".md")) continue;
     const source = await Deno.readTextFile(`${directory}/${entry.name}`);
@@ -96,8 +99,7 @@ export async function listPosts() {
   return posts.sort((left, right) => right.date.localeCompare(left.date));
 }
 
-/** @param {string} slug */
-export async function readPost(slug) {
+export async function readPost(slug: string): Promise<PostDetails | null> {
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(slug)) return null;
   try {
     const { metadata, body } = parse(await Deno.readTextFile(`${directory}/${slug}`));

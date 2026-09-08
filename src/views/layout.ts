@@ -1,27 +1,28 @@
-// @ts-check
+import type { Context } from "@hono/hono";
 import { html } from "@hono/hono/html";
+import type { HtmlEscapedString } from "@hono/hono/utils/html";
+import type { AssetResolver } from "../lib/assets.ts";
 
-/**
- * @typedef {{
- *   title: string,
- *   scripts?: string[],
- *   bodyClass?: string,
- *   mainClass?: string,
- *   header?: import("@hono/hono/utils/html").HtmlEscapedString |
- *     Promise<import("@hono/hono/utils/html").HtmlEscapedString>,
- *   footer?: import("@hono/hono/utils/html").HtmlEscapedString |
- *     Promise<import("@hono/hono/utils/html").HtmlEscapedString>,
- *   body: import("@hono/hono/utils/html").HtmlEscapedString |
- *     Promise<import("@hono/hono/utils/html").HtmlEscapedString>
- * }} LayoutOptions
- */
+export interface LayoutOptions {
+  title: string;
+  scripts?: string[];
+  bodyClass?: string;
+  mainClass?: string;
+  header?: HtmlEscapedString | Promise<HtmlEscapedString>;
+  footer?: HtmlEscapedString | Promise<HtmlEscapedString>;
+  body: HtmlEscapedString | Promise<HtmlEscapedString>;
+}
 
-/** @param {(name: string) => {script: string, styles: string[]}} asset */
-export function createLayout(asset) {
-  /** @param {import("@hono/hono").Context} context @param {LayoutOptions} options */
+export type LayoutFunction = (
+  context: Context,
+  options: LayoutOptions,
+) => HtmlEscapedString | Promise<HtmlEscapedString>;
+
+export function createLayout(asset: AssetResolver): LayoutFunction {
   return function layout(
-    context,
-    { title, scripts = [], bodyClass = "", mainClass = "page", header, footer, body },
+    context: Context,
+    { title, scripts = [], bodyClass = "", mainClass = "page", header, footer, body }:
+      LayoutOptions,
   ) {
     const nonce = context.get("secureHeadersNonce");
     const entries = ["app.js", ...scripts].map(asset);

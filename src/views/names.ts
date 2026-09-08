@@ -1,8 +1,8 @@
-// @ts-check
 import { html } from "@hono/hono/html";
-import { generateNames } from "../lib/names.js";
+import type { HtmlEscapedString } from "@hono/hono/utils/html";
+import { generateNames } from "../lib/names.ts";
 
-export function nameGrid() {
+export function nameGrid(): HtmlEscapedString | Promise<HtmlEscapedString> {
   const names = generateNames();
   return html`
     <div id="names-container" class="name-grid">

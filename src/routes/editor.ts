@@ -1,9 +1,8 @@
-// @ts-check
 import { Hono } from "@hono/hono";
 import { html } from "@hono/hono/html";
+import type { LayoutFunction } from "../views/layout.ts";
 
-/** @param {ReturnType<import("../views/layout.js").createLayout>} layout */
-export function editorRoutes(layout) {
+export function editorRoutes(layout: LayoutFunction): Hono {
   return new Hono().get("/editor", (c) =>
     c.html(layout(c, {
       title: "Manuscript",

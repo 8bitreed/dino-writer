@@ -1,5 +1,4 @@
-// @ts-check
-import { createApp } from "./app.js";
+import { createApp } from "./app.ts";
 
 const port = Number(Deno.env.get("PORT") ?? 8000);
 const app = await createApp();

@@ -1,21 +1,18 @@
-// @ts-check
 import { Hono } from "@hono/hono";
 import { basename } from "@std/path";
-import { chooseMarkdownFile, desktopFilesAvailable } from "../lib/desktop-files.js";
+import { chooseMarkdownFile, desktopFilesAvailable } from "../lib/desktop-files.ts";
 
 const maxFileSize = 10 * 1024 * 1024;
 
-/**
- * @param {{
- *   chooseFile?: typeof chooseMarkdownFile,
- *   available?: typeof desktopFilesAvailable
- * }} [options]
- */
-export function desktopFileRoutes(options = {}) {
+export interface DesktopFileRouteOptions {
+  chooseFile?: typeof chooseMarkdownFile;
+  available?: typeof desktopFilesAvailable;
+}
+
+export function desktopFileRoutes(options: DesktopFileRouteOptions = {}): Hono {
   const chooseFile = options.chooseFile ?? chooseMarkdownFile;
   const available = options.available ?? desktopFilesAvailable;
-  /** @type {string | null} */
-  let activePath = null;
+  let activePath: string | null = null;
   const app = new Hono();
 
   app.get("/editor/files/status", async (c) =>

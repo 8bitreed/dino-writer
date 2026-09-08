@@ -1,20 +1,19 @@
-// @ts-check
-
-function dialogCommand() {
+function dialogCommand(): string {
   if (Deno.build.os === "linux") return "zenity";
   if (Deno.build.os === "darwin") return "osascript";
   return "powershell";
 }
 
-export async function desktopFilesAvailable() {
+export async function desktopFilesAvailable(): Promise<boolean> {
   const permission = await Deno.permissions.query({ name: "run", command: dialogCommand() });
   return permission.state === "granted";
 }
 
-/** @param {"open" | "save"} action @param {string} [suggestedName] */
-export async function chooseMarkdownFile(action, suggestedName = "manuscript.md") {
-  /** @type {string[]} */
-  let args;
+export async function chooseMarkdownFile(
+  action: "open" | "save",
+  suggestedName = "manuscript.md",
+): Promise<string | null> {
+  let args: string[];
   const command = dialogCommand();
   if (Deno.build.os === "linux") {
     args = [

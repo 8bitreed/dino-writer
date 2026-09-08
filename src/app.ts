@@ -1,4 +1,3 @@
-// @ts-check
 import { Hono } from "@hono/hono";
 import { html } from "@hono/hono/html";
 import { serveStatic } from "@hono/hono/deno";
@@ -6,17 +5,16 @@ import { etag } from "@hono/hono/etag";
 import { HTTPException } from "@hono/hono/http-exception";
 import { methodNotAllowed } from "@hono/hono/method-not-allowed";
 import { NONCE, secureHeaders } from "@hono/hono/secure-headers";
-import { loadAssets } from "./lib/assets.js";
-import { desktopFileRoutes } from "./routes/desktop-files.js";
-import { editorRoutes } from "./routes/editor.js";
-import { pageRoutes } from "./routes/pages.js";
-import { postRoutes } from "./routes/posts.js";
-import { createLayout } from "./views/layout.js";
+import { type AssetResolver, loadAssets } from "./lib/assets.ts";
+import { desktopFileRoutes } from "./routes/desktop-files.ts";
+import { editorRoutes } from "./routes/editor.ts";
+import { pageRoutes } from "./routes/pages.ts";
+import { postRoutes } from "./routes/posts.ts";
+import { createLayout } from "./views/layout.ts";
 
-/** @param {(name: string) => {script: string, styles: string[]}} [asset] */
-export async function createApp(asset) {
-  asset ??= await loadAssets();
-  const layout = createLayout(asset);
+export async function createApp(asset?: AssetResolver): Promise<Hono> {
+  const resolvedAsset = asset ?? (await loadAssets());
+  const layout = createLayout(resolvedAsset);
   const app = new Hono();
 
   app.use(

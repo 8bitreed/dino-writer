@@ -1,66 +1,59 @@
-// @ts-check
 import "./editor.css";
 
 const storageKey = "writer-tools-manuscript-v1";
 const handleKey = "active-file-handle";
 
-/**
- * @typedef {{
- *   id: string,
- *   title: string,
- *   content: string,
- *   wordCount: number,
- *   charCount: number
- * }} Chapter
- * @typedef {{
- *   filename: string,
- *   frontmatter: Record<string, string | number>,
- *   chapters: Chapter[]
- * }} Manuscript
- * @typedef {{
- *   kind: "file",
- *   name: string,
- *   getFile(): Promise<File>,
- *   createWritable(): Promise<{write(data: string): Promise<void>, close(): Promise<void>}>,
- *   queryPermission(options: {mode: string}): Promise<string>,
- *   requestPermission(options: {mode: string}): Promise<string>
- * }} WritableFileHandle
- */
+export interface Chapter {
+  id: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  charCount: number;
+}
 
-const filePicker =
-  /** @type {{
-   *   showSaveFilePicker?: (options: object) => Promise<WritableFileHandle>,
-   *   showOpenFilePicker?: (options: object) => Promise<WritableFileHandle[]>
-   * }} */
-  (globalThis);
+export interface Manuscript {
+  filename: string;
+  frontmatter: Record<string, string | number>;
+  chapters: Chapter[];
+}
 
-/** @template {HTMLElement} T @param {string} selector @returns {T} */
-function element(selector) {
+export interface WritableFileHandle {
+  kind: "file";
+  name: string;
+  getFile(): Promise<File>;
+  createWritable(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
+  queryPermission(options: { mode: string }): Promise<string>;
+  requestPermission(options: { mode: string }): Promise<string>;
+}
+
+const filePicker = globalThis as unknown as {
+  showSaveFilePicker?: (options: object) => Promise<WritableFileHandle>;
+  showOpenFilePicker?: (options: object) => Promise<WritableFileHandle[]>;
+};
+
+function element<T extends HTMLElement = HTMLElement>(selector: string): T {
   const match = document.querySelector(selector);
   if (!(match instanceof HTMLElement)) throw new Error(`Missing editor element: ${selector}`);
-  return /** @type {T} */ (match);
+  return match as T;
 }
 
 const editor = element("#editor");
 const chapterList = element("#chapter-list");
 const sidebar = element("#editor-sidebar");
-const chapterTitle = /** @type {HTMLInputElement} */ (element("#chapter-title"));
-const manuscriptTitle = /** @type {HTMLInputElement} */ (element("#manuscript-title"));
-const fileInput = /** @type {HTMLInputElement} */ (element("#file-input"));
+const chapterTitle = element<HTMLInputElement>("#chapter-title");
+const manuscriptTitle = element<HTMLInputElement>("#manuscript-title");
+const fileInput = element<HTMLInputElement>("#file-input");
 const modal = element("#welcome-modal");
 const saveStatus = element("#save-status");
 let activeChapter = 0;
-/** @type {WritableFileHandle | null} */
-let fileHandle = null;
+let fileHandle: WritableFileHandle | null = null;
 let canWrite = false;
 let desktopFiles = false;
 let desktopFileOpen = false;
-/** @type {ReturnType<typeof setTimeout> | undefined} */
-let saveTimer;
-/** @type {Manuscript} */
-let manuscript = blankManuscript();
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let manuscript: Manuscript = blankManuscript();
 
-function blankManuscript(title = "Untitled Manuscript") {
+function blankManuscript(title = "Untitled Manuscript"): Manuscript {
   return {
     filename: `${slug(title) || "manuscript"}.md`,
     frontmatter: {
@@ -73,8 +66,7 @@ function blankManuscript(title = "Untitled Manuscript") {
   };
 }
 
-/** @param {string} title @param {string} content */
-function chapter(title, content) {
+function chapter(title: string, content: string): Chapter {
   const stats = count(textFromHtml(content));
   return {
     id: crypto.randomUUID(),
@@ -85,40 +77,34 @@ function chapter(title, content) {
   };
 }
 
-/** @param {string} value */
-function slug(value) {
+function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-/** @param {string} value */
-function escapeHtml(value) {
+function escapeHtml(value: string): string {
   const node = document.createElement("div");
   node.textContent = value;
   return node.innerHTML;
 }
 
-/** @param {string} html */
-function textFromHtml(html) {
+function textFromHtml(html: string): string {
   const node = document.createElement("div");
   node.innerHTML = html;
   return node.textContent ?? "";
 }
 
-/** @param {string} text */
-function count(text) {
+function count(text: string): { words: number; chars: number } {
   const clean = text.trim();
   return { words: clean ? clean.split(/\s+/).length : 0, chars: clean.length };
 }
 
-/** @param {string} text */
-function inlineMarkdown(text) {
+function inlineMarkdown(text: string): string {
   return escapeHtml(text)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
 }
 
-/** @param {string} markdown */
-function markdownToHtml(markdown) {
+function markdownToHtml(markdown: string): string {
   if (!markdown.trim()) return "<p></p>";
   return markdown.split(/\r?\n\r?\n/).map((part) => {
     const value = part.trim();
@@ -136,11 +122,9 @@ function markdownToHtml(markdown) {
   }).join("");
 }
 
-/** @param {Node} node @returns {string} */
-function nodeToMarkdown(node) {
+function nodeToMarkdown(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
   if (!(node instanceof HTMLElement)) return "";
-  /** @type {string} */
   const content = [...node.childNodes].map(nodeToMarkdown).join("");
   if (node.matches("strong,b")) return `**${content}**`;
   if (node.matches("em,i")) return `*${content}*`;
@@ -155,17 +139,14 @@ function nodeToMarkdown(node) {
   return content;
 }
 
-/** @param {string} html */
-function htmlToMarkdown(html) {
+function htmlToMarkdown(html: string): string {
   const node = document.createElement("div");
   node.innerHTML = html;
   return [...node.childNodes].map(nodeToMarkdown).join("").trim();
 }
 
-/** @param {string} source @param {string} filename */
-function parseManuscript(source, filename) {
-  /** @type {Record<string, string | number>} */
-  let frontmatter = {
+function parseManuscript(source: string, filename: string): Manuscript {
+  let frontmatter: Record<string, string | number> = {
     title: filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
     author: "",
     createdAt: new Date().toISOString(),
@@ -187,11 +168,9 @@ function parseManuscript(source, filename) {
     }
   }
 
-  /** @type {Chapter[]} */
-  const chapters = [];
+  const chapters: Chapter[] = [];
   let title = "Chapter 1";
-  /** @type {string[]} */
-  let lines = [];
+  let lines: string[] = [];
   const flush = () => {
     if (!lines.some((line) => line.trim()) && chapters.length) return;
     let markdown = lines.join("\n").trim();
@@ -221,7 +200,7 @@ function parseManuscript(source, filename) {
   };
 }
 
-function syncChapter() {
+function syncChapter(): void {
   const current = manuscript.chapters[activeChapter];
   if (!current) return;
   current.content = editor.innerHTML;
@@ -230,7 +209,7 @@ function syncChapter() {
   current.charCount = stats.chars;
 }
 
-function serialize() {
+function serialize(): string {
   syncChapter();
   const metadata = {
     ...manuscript.frontmatter,
@@ -244,7 +223,7 @@ function serialize() {
   return `---\n${JSON.stringify(metadata, null, 2)}\n---\n\n${chapters.join("\n\n")}\n`;
 }
 
-function render() {
+function render(): void {
   const current = manuscript.chapters[activeChapter];
   if (!current) return;
   manuscriptTitle.value = String(manuscript.frontmatter.title ?? "Untitled Manuscript");
@@ -289,7 +268,7 @@ function render() {
   updateStats();
 }
 
-function updateStats() {
+function updateStats(): void {
   const current = manuscript.chapters[activeChapter];
   const total = manuscript.chapters.reduce((sum, item) => sum + item.wordCount, 0);
   element("#chapter-stats").textContent = `Chapter: ${current?.wordCount ?? 0} words · ${
@@ -303,7 +282,7 @@ function updateStats() {
   }`;
 }
 
-function saveLocal() {
+function saveLocal(): void {
   syncChapter();
   localStorage.setItem(storageKey, JSON.stringify({ manuscript, activeChapter }));
   saveStatus.textContent = fileHandle && canWrite
@@ -311,7 +290,7 @@ function saveLocal() {
     : "Saved in app only";
 }
 
-function changed() {
+function changed(): void {
   syncChapter();
   saveStatus.textContent = "Unsaved changes";
   updateStats();
@@ -330,8 +309,7 @@ function changed() {
   }, 500);
 }
 
-/** @returns {Promise<IDBDatabase>} */
-function database() {
+function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("WriterToolsDB", 1);
     request.onupgradeneeded = () => request.result.createObjectStore("handles");
@@ -340,8 +318,7 @@ function database() {
   });
 }
 
-/** @param {WritableFileHandle | null} value */
-async function storeHandle(value) {
+async function storeHandle(value: WritableFileHandle | null): Promise<void> {
   try {
     const db = await database();
     const transaction = db.transaction("handles", "readwrite");
@@ -352,8 +329,7 @@ async function storeHandle(value) {
   }
 }
 
-/** @returns {Promise<WritableFileHandle | null>} */
-async function restoreHandle() {
+async function restoreHandle(): Promise<WritableFileHandle | null> {
   try {
     const db = await database();
     return await new Promise((resolve, reject) => {
@@ -367,8 +343,7 @@ async function restoreHandle() {
   }
 }
 
-/** @param {WritableFileHandle} handle */
-async function writeFile(handle) {
+async function writeFile(handle: WritableFileHandle): Promise<void> {
   const writable = await handle.createWritable();
   await writable.write(serialize());
   await writable.close();
@@ -376,14 +351,12 @@ async function writeFile(handle) {
   saveStatus.textContent = `Saved to ${handle.name}`;
 }
 
-/** @param {WritableFileHandle} handle @param {boolean} request */
-async function hasWritePermission(handle, request) {
+async function hasWritePermission(handle: WritableFileHandle, request: boolean): Promise<boolean> {
   if ((await handle.queryPermission({ mode: "readwrite" })) === "granted") return true;
   return request && (await handle.requestPermission({ mode: "readwrite" })) === "granted";
 }
 
-/** @param {boolean} saveAs */
-async function saveDesktopFile(saveAs) {
+async function saveDesktopFile(saveAs: boolean): Promise<void> {
   try {
     const response = await fetch("/editor/files/save", {
       method: "POST",
@@ -404,7 +377,7 @@ async function saveDesktopFile(saveAs) {
   }
 }
 
-async function saveToDisk() {
+async function saveToDisk(): Promise<void> {
   if (desktopFiles) return await saveDesktopFile(!desktopFileOpen);
   if (fileHandle) {
     try {
@@ -442,7 +415,7 @@ async function saveToDisk() {
   }
 }
 
-function download() {
+function download(): void {
   const url = URL.createObjectURL(new Blob([serialize()], { type: "text/markdown" }));
   const link = document.createElement("a");
   link.href = url;
@@ -455,12 +428,11 @@ function download() {
   saveStatus.textContent = `Exported ${manuscript.filename}`;
 }
 
-/**
- * @param {File} file
- * @param {WritableFileHandle | null} [handle]
- * @param {boolean} [writable]
- */
-async function loadFile(file, handle = null, writable = false) {
+async function loadFile(
+  file: File,
+  handle: WritableFileHandle | null = null,
+  writable = false,
+): Promise<void> {
   manuscript = parseManuscript(await file.text(), file.name);
   activeChapter = 0;
   fileHandle = handle;
@@ -471,7 +443,7 @@ async function loadFile(file, handle = null, writable = false) {
   modal.classList.add("hidden");
 }
 
-async function openFile() {
+async function openFile(): Promise<void> {
   if (desktopFiles) return await openDesktopFile();
   if (!filePicker.showOpenFilePicker) return fileInput.click();
   try {
@@ -497,7 +469,7 @@ async function openFile() {
   }
 }
 
-async function openDesktopFile() {
+async function openDesktopFile(): Promise<void> {
   try {
     const response = await fetch("/editor/files/open", {
       method: "POST",
@@ -521,7 +493,7 @@ async function openDesktopFile() {
   }
 }
 
-function newManuscript() {
+function newManuscript(): void {
   const title = prompt("Manuscript title:", "My Novel")?.trim() || "Untitled Manuscript";
   manuscript = blankManuscript(title);
   activeChapter = 0;
@@ -534,7 +506,7 @@ function newManuscript() {
   modal.classList.add("hidden");
 }
 
-function loadSample() {
+function loadSample(): void {
   manuscript = parseManuscript(
     `---
 {"title":"The Chronicler's Compass","author":"Writer Tools"}

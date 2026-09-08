@@ -1,13 +1,10 @@
-// @ts-check
-import { createApp } from "../src/app.js";
+import { createApp } from "../src/app.ts";
 
-/** @param {unknown} condition */
-function assert(condition) {
+function assert(condition: unknown): asserts condition {
   if (!condition) throw new Error("Assertion failed");
 }
 
-/** @param {string} name */
-const asset = (name) => ({
+const asset = (name: string) => ({
   script: `/assets/${name}`,
   styles: [`/assets/${name.replace(".js", ".css")}`],
 });

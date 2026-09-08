@@ -1,7 +1,7 @@
 {
   "name": "deno-simple",
   "version": "0.1.0",
-  "exports": "./server.js",
+  "exports": "./server.ts",
   "desktop": {
     "app": {
       "name": "Deno Simple",
@@ -29,13 +29,13 @@
     }
   },
   "tasks": {
-    "build": "deno run -A build.js",
-    "check": "deno fmt --check && deno lint && deno check src/main.js server.js build.js src/client/app.js src/client/pages/name-gen.js src/client/pages/editor.js src/client/lib/puma.ts && deno test --allow-read=dist,src/posts,tests --allow-write=tests",
+    "build": "deno run -A build.ts",
+    "check": "deno fmt --check && deno lint && deno check src/main.ts server.ts build.ts src/client/app.ts src/client/pages/name-gen.ts src/client/pages/editor.ts src/client/lib/puma.ts && deno test --allow-read=dist,src/posts,tests --allow-write=tests",
     "desktop": "deno desktop --include src/posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell .",
-    "desktop:dev": "deno task build && deno desktop --hmr --include src/posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell server.js",
-    "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist,src/posts --watch=src/,dist/ src/main.js",
-    "dev:assets": "deno run -A build.js --watch",
-    "start": "deno run --allow-env=PORT --allow-net --allow-read=dist,src/posts src/main.js"
+    "desktop:dev": "deno task build && deno desktop --hmr --include src/posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell server.ts",
+    "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist,src/posts --watch=src/,dist/ src/main.ts",
+    "dev:assets": "deno run -A build.ts --watch",
+    "start": "deno run --allow-env=PORT --allow-net --allow-read=dist,src/posts src/main.ts"
   },
   "imports": {
     "@hono/hono": "jsr:@hono/hono@^4.13.5",

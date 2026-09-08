@@ -1,9 +1,7 @@
-// @ts-check
 import { Hono } from "@hono/hono";
-import { desktopFileRoutes } from "../src/routes/desktop-files.js";
+import { desktopFileRoutes } from "../src/routes/desktop-files.ts";
 
-/** @param {unknown} condition */
-function assert(condition) {
+function assert(condition: unknown): asserts condition {
   if (!condition) throw new Error("Assertion failed");
 }
 
@@ -40,7 +38,7 @@ Deno.test("desktop save updates the selected Markdown file on disk", async () =>
       }),
     });
     assert(saved.status === 200);
-    assert(await Deno.readTextFile(path) === changed);
+    assert((await Deno.readTextFile(path)) === changed);
   } finally {
     await Deno.remove(directory, { recursive: true });
   }
