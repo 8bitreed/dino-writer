@@ -16,6 +16,8 @@
   "compilerOptions": {
     "checkJs": true,
     "strict": true,
+    "jsx": "precompile",
+    "jsxImportSource": "@hono/hono/jsx",
     "lib": ["deno.window", "deno.unstable", "dom", "dom.iterable"]
   },
   "fmt": {

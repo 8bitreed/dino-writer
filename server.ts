@@ -1,4 +1,4 @@
-import { createApp } from "./src/app.ts";
+import { createApp } from "./src/app.tsx";
 
 const app = await createApp();
 

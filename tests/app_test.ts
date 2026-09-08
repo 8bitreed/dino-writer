@@ -1,4 +1,4 @@
-import { createApp } from "../src/app.ts";
+import { createApp } from "../src/app.tsx";
 
 function assert(condition: unknown): asserts condition {
   if (!condition) throw new Error("Assertion failed");
@@ -48,7 +48,7 @@ Deno.test("renders editor with its hashed asset entry", async () => {
 Deno.test("returns custom 404 and method-not-allowed responses", async () => {
   const missing = await app.request("/posts/not-found.md");
   assert(missing.status === 404);
-  assert((await missing.text()).includes("The page you're looking for"));
+  assert((await missing.text()).includes("The page you&#39;re looking for"));
 
   const manifest = await app.request("/manifest.json");
   assert(manifest.status === 404);
