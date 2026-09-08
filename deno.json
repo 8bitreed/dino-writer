@@ -4,8 +4,8 @@
   "exports": "./server.ts",
   "desktop": {
     "app": {
-      "name": "Deno Simple",
-      "identifier": "io.github.8bitreed.deno-simple"
+      "name": "Writasuarus",
+      "identifier": "io.github.8bitreed.dino-writer"
     },
     "output": {
       "linux": "./desktop/DenoSimple.AppImage",
@@ -18,7 +18,7 @@
     "strict": true,
     "jsx": "precompile",
     "jsxImportSource": "@hono/hono/jsx",
-    "lib": ["deno.window", "deno.unstable", "dom", "dom.iterable"]
+    "lib": ["deno.window", "deno.unstable", "deno.desktop", "dom", "dom.iterable"]
   },
   "fmt": {
     "lineWidth": 100,
