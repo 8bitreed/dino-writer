@@ -1,0 +1,45 @@
+{
+  "name": "deno-simple",
+  "version": "0.1.0",
+  "exports": "./server.js",
+  "desktop": {
+    "app": {
+      "name": "Deno Simple",
+      "identifier": "io.github.8bitreed.deno-simple"
+    },
+    "output": {
+      "linux": "./desktop/DenoSimple.AppImage",
+      "windows": "./desktop/DenoSimple.msi",
+      "macos": "./desktop/DenoSimple.app"
+    }
+  },
+  "compilerOptions": {
+    "checkJs": true,
+    "strict": true,
+    "lib": ["deno.window", "deno.unstable", "dom", "dom.iterable"]
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "semiColons": true,
+    "singleQuote": false
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "tasks": {
+    "build": "deno run -A npm:vite@7.1.4 build",
+    "check": "deno fmt --check && deno lint && deno check src/main.ts server.js vite.config.js client/app.js client/pages/name-gen.js client/pages/editor.js && deno test --allow-read=dist,posts,tests --allow-write=tests",
+    "desktop": "deno desktop --include posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell .",
+    "desktop:dev": "deno task build && deno desktop --hmr --include posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell server.js",
+    "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist,posts --watch=src/,dist/,posts/ src/main.ts",
+    "dev:assets": "deno run -A npm:vite@7.1.4 build --watch",
+    "start": "deno run --allow-env=PORT --allow-net --allow-read=dist,posts src/main.ts"
+  },
+  "imports": {
+    "@hono/hono": "jsr:@hono/hono@^4.13.5",
+    "@std/path": "jsr:@std/path@^1.1.4",
+    "vite": "npm:vite@7.1.4"
+  }
+}

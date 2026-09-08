@@ -1,0 +1,252 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #f7f4ef;
+  --surface: #fffcf7;
+  --surface-sunken: #ede8df;
+  --text: #1c1917;
+  --muted: #78716c;
+  --border: #e7e0d6;
+  --accent: #1c1917;
+  --accent-text: #f7f4ef;
+  --danger: #b91c1c;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161412;
+    --surface: #1c1917;
+    --surface-sunken: #221f1c;
+    --text: #f5f0e8;
+    --muted: #a8a29e;
+    --border: #2c2824;
+    --accent: #f5f0e8;
+    --accent-text: #161412;
+    --danger: #ef4444;
+  }
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f4ef;
+  --surface: #fffcf7;
+  --surface-sunken: #ede8df;
+  --text: #1c1917;
+  --muted: #78716c;
+  --border: #e7e0d6;
+  --accent: #1c1917;
+  --accent-text: #f7f4ef;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161412;
+  --surface: #1c1917;
+  --surface-sunken: #221f1c;
+  --text: #f5f0e8;
+  --muted: #a8a29e;
+  --border: #2c2824;
+  --accent: #f5f0e8;
+  --accent-text: #161412;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.site-header {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.8rem max(1rem, calc((100vw - 70rem) / 2));
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand {
+  font-family: ui-serif, Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  flex: 1;
+  gap: 1rem;
+}
+
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.site-nav a:hover {
+  color: var(--text);
+}
+
+.theme-toggle,
+.nav-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: var(--text);
+  padding: 0.35rem 0.65rem;
+}
+
+.nav-toggle {
+  display: none;
+}
+
+.page {
+  margin: 0 auto;
+  max-width: 70rem;
+  padding: 3rem 1.25rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3rem;
+  padding: 1.5rem max(1rem, calc((100vw - 70rem) / 2));
+}
+
+.stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.page-heading p,
+.card p,
+time {
+  color: var(--muted);
+}
+
+h1,
+h2,
+h3 {
+  font-family: ui-serif, Georgia, serif;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 5%);
+  padding: 1.25rem;
+}
+
+.post-list {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+}
+
+.post-list .card {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.post-list a {
+  font-family: ui-serif, Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.prose {
+  margin-inline: auto;
+  max-width: 68ch;
+}
+
+.markdown > * + * {
+  margin-top: 1rem;
+}
+
+.markdown ul {
+  padding-left: 1.5rem;
+}
+
+.markdown blockquote {
+  border-left: 0.25rem solid var(--border);
+  color: var(--muted);
+  padding-left: 1rem;
+}
+
+.button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: var(--text);
+  padding: 0.6rem 1rem;
+}
+
+.button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.not-found {
+  min-height: 55vh;
+  place-content: center;
+  text-align: center;
+}
+
+@media (max-width: 42rem) {
+  .nav-toggle {
+    display: block;
+  }
+
+  .site-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: none;
+    flex-direction: column;
+    left: 0;
+    padding: 1rem;
+    position: absolute;
+    right: 0;
+    top: 100%;
+  }
+
+  .site-nav.open {
+    display: flex;
+  }
+}

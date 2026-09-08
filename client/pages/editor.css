@@ -1,0 +1,326 @@
+.editor-mode {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.editor-topbar,
+.editor-statusbar {
+  align-items: center;
+  background: var(--surface);
+  border-color: var(--border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.55rem 1rem;
+}
+
+.editor-topbar {
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-statusbar {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.topbar-group {
+  align-items: center;
+  display: flex;
+  flex: 1 1 0;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.topbar-group:last-child {
+  justify-content: flex-end;
+}
+
+.editor-topbar button,
+.sidebar-heading button,
+.editor-toolbar button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--text);
+  min-height: 2.25rem;
+  padding: 0.35rem 0.6rem;
+  white-space: nowrap;
+}
+
+.editor-topbar button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+#manuscript-title,
+#chapter-title {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  outline: 0;
+}
+
+#manuscript-title {
+  flex: 1;
+  font-weight: 700;
+  max-width: 13rem;
+  min-width: 6rem;
+}
+
+#filename,
+#save-status {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.editor-main {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-workspace {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.editor-sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 17rem;
+  padding: 0.75rem;
+  transition: margin 0.2s, transform 0.2s;
+  width: 17rem;
+}
+
+.editor-sidebar.collapsed {
+  margin-left: -17rem;
+}
+
+.sidebar-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+}
+
+.sidebar-heading h2 {
+  font: 700 0.8rem ui-sans-serif, system-ui;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#chapter-list {
+  align-content: start;
+  display: grid;
+  gap: 0.25rem;
+  grid-auto-rows: max-content;
+  list-style: none;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.chapter-item {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 2.75rem;
+  padding: 0.55rem;
+}
+
+.chapter-item.active {
+  background: var(--surface-sunken);
+  border-color: var(--border);
+}
+
+.chapter-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapter-item small,
+#sidebar-stats {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.chapter-item button {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  border-radius: 0.3rem;
+  color: var(--danger);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.35rem;
+}
+
+.writing-area {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  margin: 0 auto;
+  max-width: 48rem;
+  min-width: 0;
+  padding: 1.5rem;
+  width: 100%;
+}
+
+#chapter-title {
+  font: 700 1.8rem ui-serif, Georgia, serif;
+  padding-block: 0.5rem;
+}
+
+.editor-toolbar {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-block: 0.5rem;
+}
+
+.editor-canvas {
+  font: 1.15rem/1.8 ui-serif, Georgia, serif;
+  min-height: 0;
+  outline: 0;
+  overflow-y: auto;
+  padding: 1.25rem 0 6rem;
+}
+
+.editor-canvas > * + * {
+  margin-top: 1rem;
+}
+
+.editor-modal {
+  background: rgb(0 0 0 / 55%);
+  display: grid;
+  inset: 0;
+  place-items: center;
+  position: fixed;
+  z-index: 50;
+}
+
+.editor-modal.hidden {
+  display: none;
+}
+
+.modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  max-width: 28rem;
+  padding: 2rem;
+  width: calc(100% - 2rem);
+}
+
+@media (max-width: 55rem) {
+  .editor-mode {
+    height: 100dvh;
+  }
+
+  .editor-topbar {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .editor-topbar .topbar-group {
+    flex-basis: 100%;
+  }
+
+  .editor-topbar .topbar-group:last-child {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+  }
+
+  .editor-topbar button {
+    flex: 0 0 auto;
+    min-height: 2.5rem;
+  }
+
+  .editor-topbar > strong,
+  #filename,
+  #save-status {
+    display: none;
+  }
+
+  .editor-sidebar {
+    bottom: 0;
+    left: 0;
+    margin-left: 0;
+    min-width: 0;
+    position: absolute;
+    top: 0;
+    width: min(19rem, 88vw);
+    z-index: 10;
+  }
+
+  .editor-sidebar.collapsed {
+    margin-left: 0;
+    transform: translateX(-100%);
+  }
+
+  .writing-area {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .editor-statusbar {
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+  }
+}
+
+@media (max-width: 36rem) {
+  .editor-topbar {
+    padding-inline: 0.5rem;
+  }
+
+  .editor-topbar .brand {
+    font-size: 1rem;
+  }
+
+  #manuscript-title {
+    max-width: none;
+  }
+
+  .writing-area {
+    padding: 0.65rem 0.75rem;
+  }
+
+  #chapter-title {
+    font-size: 1.35rem;
+    width: 100%;
+  }
+
+  .editor-toolbar button {
+    min-height: 2.5rem;
+  }
+
+  .editor-canvas {
+    font-size: 1rem;
+    line-height: 1.7;
+    padding-top: 0.9rem;
+  }
+
+  .editor-statusbar {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .modal-card {
+    padding: 1.25rem;
+  }
+}

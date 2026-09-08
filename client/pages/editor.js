@@ -1,0 +1,665 @@
+// @ts-check
+import "./editor.css";
+
+const storageKey = "writer-tools-manuscript-v1";
+const handleKey = "active-file-handle";
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   title: string,
+ *   content: string,
+ *   wordCount: number,
+ *   charCount: number
+ * }} Chapter
+ * @typedef {{
+ *   filename: string,
+ *   frontmatter: Record<string, string | number>,
+ *   chapters: Chapter[]
+ * }} Manuscript
+ * @typedef {{
+ *   kind: "file",
+ *   name: string,
+ *   getFile(): Promise<File>,
+ *   createWritable(): Promise<{write(data: string): Promise<void>, close(): Promise<void>}>,
+ *   queryPermission(options: {mode: string}): Promise<string>,
+ *   requestPermission(options: {mode: string}): Promise<string>
+ * }} WritableFileHandle
+ */
+
+const filePicker =
+  /** @type {{
+   *   showSaveFilePicker?: (options: object) => Promise<WritableFileHandle>,
+   *   showOpenFilePicker?: (options: object) => Promise<WritableFileHandle[]>
+   * }} */
+  (globalThis);
+
+/** @template {HTMLElement} T @param {string} selector @returns {T} */
+function element(selector) {
+  const match = document.querySelector(selector);
+  if (!(match instanceof HTMLElement)) throw new Error(`Missing editor element: ${selector}`);
+  return /** @type {T} */ (match);
+}
+
+const editor = element("#editor");
+const chapterList = element("#chapter-list");
+const sidebar = element("#editor-sidebar");
+const chapterTitle = /** @type {HTMLInputElement} */ (element("#chapter-title"));
+const manuscriptTitle = /** @type {HTMLInputElement} */ (element("#manuscript-title"));
+const fileInput = /** @type {HTMLInputElement} */ (element("#file-input"));
+const modal = element("#welcome-modal");
+const saveStatus = element("#save-status");
+let activeChapter = 0;
+/** @type {WritableFileHandle | null} */
+let fileHandle = null;
+let canWrite = false;
+let desktopFiles = false;
+let desktopFileOpen = false;
+/** @type {ReturnType<typeof setTimeout> | undefined} */
+let saveTimer;
+/** @type {Manuscript} */
+let manuscript = blankManuscript();
+
+function blankManuscript(title = "Untitled Manuscript") {
+  return {
+    filename: `${slug(title) || "manuscript"}.md`,
+    frontmatter: {
+      title,
+      author: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    chapters: [chapter("Chapter 1: The Beginning", "<p></p>")],
+  };
+}
+
+/** @param {string} title @param {string} content */
+function chapter(title, content) {
+  const stats = count(textFromHtml(content));
+  return {
+    id: crypto.randomUUID(),
+    title,
+    content,
+    wordCount: stats.words,
+    charCount: stats.chars,
+  };
+}
+
+/** @param {string} value */
+function slug(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/** @param {string} value */
+function escapeHtml(value) {
+  const node = document.createElement("div");
+  node.textContent = value;
+  return node.innerHTML;
+}
+
+/** @param {string} html */
+function textFromHtml(html) {
+  const node = document.createElement("div");
+  node.innerHTML = html;
+  return node.textContent ?? "";
+}
+
+/** @param {string} text */
+function count(text) {
+  const clean = text.trim();
+  return { words: clean ? clean.split(/\s+/).length : 0, chars: clean.length };
+}
+
+/** @param {string} text */
+function inlineMarkdown(text) {
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
+}
+
+/** @param {string} markdown */
+function markdownToHtml(markdown) {
+  if (!markdown.trim()) return "<p></p>";
+  return markdown.split(/\r?\n\r?\n/).map((part) => {
+    const value = part.trim();
+    if (value.startsWith("### ")) return `<h3>${inlineMarkdown(value.slice(4))}</h3>`;
+    if (value.startsWith("## ")) return `<h2>${inlineMarkdown(value.slice(3))}</h2>`;
+    if (value.startsWith("# ")) return `<h1>${inlineMarkdown(value.slice(2))}</h1>`;
+    if (value.startsWith("> ")) return `<blockquote>${inlineMarkdown(value.slice(2))}</blockquote>`;
+    const lines = value.split(/\r?\n/);
+    if (lines.every((line) => line.startsWith("- "))) {
+      return `<ul>${
+        lines.map((line) => `<li>${inlineMarkdown(line.slice(2))}</li>`).join("")
+      }</ul>`;
+    }
+    return `<p>${inlineMarkdown(value).replace(/\r?\n/g, "<br>")}</p>`;
+  }).join("");
+}
+
+/** @param {Node} node @returns {string} */
+function nodeToMarkdown(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+  if (!(node instanceof HTMLElement)) return "";
+  /** @type {string} */
+  const content = [...node.childNodes].map(nodeToMarkdown).join("");
+  if (node.matches("strong,b")) return `**${content}**`;
+  if (node.matches("em,i")) return `*${content}*`;
+  if (node.matches("br")) return "\n";
+  if (node.matches("h1")) return `# ${content}\n\n`;
+  if (node.matches("h2")) return `## ${content}\n\n`;
+  if (node.matches("h3")) return `### ${content}\n\n`;
+  if (node.matches("blockquote")) return `> ${content}\n\n`;
+  if (node.matches("li")) return `- ${content}\n`;
+  if (node.matches("ul")) return `${content}\n`;
+  if (node.matches("p,div")) return `${content}\n\n`;
+  return content;
+}
+
+/** @param {string} html */
+function htmlToMarkdown(html) {
+  const node = document.createElement("div");
+  node.innerHTML = html;
+  return [...node.childNodes].map(nodeToMarkdown).join("").trim();
+}
+
+/** @param {string} source @param {string} filename */
+function parseManuscript(source, filename) {
+  /** @type {Record<string, string | number>} */
+  let frontmatter = {
+    title: filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
+    author: "",
+    createdAt: new Date().toISOString(),
+  };
+  let body = source;
+  const match = source.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/);
+  if (match?.[1] !== undefined && match[2] !== undefined) {
+    body = match[2];
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        frontmatter = { ...frontmatter, ...parsed };
+      }
+    } catch {
+      for (const line of match[1].split(/\r?\n/)) {
+        const pair = line.match(/^([\w-]+):\s*(.+)$/);
+        if (pair?.[1] && pair[2]) frontmatter[pair[1]] = pair[2].replace(/^["']|["']$/g, "");
+      }
+    }
+  }
+
+  /** @type {Chapter[]} */
+  const chapters = [];
+  let title = "Chapter 1";
+  /** @type {string[]} */
+  let lines = [];
+  const flush = () => {
+    if (!lines.some((line) => line.trim()) && chapters.length) return;
+    let markdown = lines.join("\n").trim();
+    const heading = markdown.match(/^#\s+(.+)\r?\n?/);
+    if (heading?.[1]?.trim() === title.trim()) markdown = markdown.slice(heading[0].length).trim();
+    chapters.push(chapter(title, markdownToHtml(markdown)));
+  };
+  for (const line of body.split(/\r?\n/)) {
+    const marker = line.trim().match(
+      /^(?:<!--\s*chapter:?\s*(.*?)\s*-->|---chapter:?\s*(.*?)\s*---)$/i,
+    );
+    const heading = line.trim().match(/^#{1,2}\s+(chapter\b.*|prologue|epilogue|introduction)$/i);
+    const markerTitle = marker?.[1] ?? marker?.[2] ?? heading?.[1];
+    if (markerTitle !== undefined) {
+      if (lines.some((part) => part.trim())) flush();
+      title = markerTitle.trim() || `Chapter ${chapters.length + 1}`;
+      lines = [];
+    } else if (line.trim() || lines.length) {
+      lines.push(line);
+    }
+  }
+  flush();
+  return {
+    filename,
+    frontmatter,
+    chapters: chapters.length ? chapters : [chapter("Chapter 1", "")],
+  };
+}
+
+function syncChapter() {
+  const current = manuscript.chapters[activeChapter];
+  if (!current) return;
+  current.content = editor.innerHTML;
+  const stats = count(editor.innerText);
+  current.wordCount = stats.words;
+  current.charCount = stats.chars;
+}
+
+function serialize() {
+  syncChapter();
+  const metadata = {
+    ...manuscript.frontmatter,
+    updatedAt: new Date().toISOString(),
+    totalChapters: manuscript.chapters.length,
+    totalWords: manuscript.chapters.reduce((sum, item) => sum + item.wordCount, 0),
+  };
+  const chapters = manuscript.chapters.map((item) =>
+    `<!-- chapter: ${item.title.replace(/-->/g, "")} -->\n\n${htmlToMarkdown(item.content)}`
+  );
+  return `---\n${JSON.stringify(metadata, null, 2)}\n---\n\n${chapters.join("\n\n")}\n`;
+}
+
+function render() {
+  const current = manuscript.chapters[activeChapter];
+  if (!current) return;
+  manuscriptTitle.value = String(manuscript.frontmatter.title ?? "Untitled Manuscript");
+  chapterTitle.value = current.title;
+  editor.innerHTML = current.content || "<p></p>";
+  element("#filename").textContent = manuscript.filename;
+  element("#chapter-breadcrumb").textContent = current.title;
+  chapterList.replaceChildren(...manuscript.chapters.map((item, index) => {
+    const row = document.createElement("li");
+    row.className = `chapter-item${index === activeChapter ? " active" : ""}`;
+    const label = document.createElement("span");
+    label.textContent = item.title;
+    const words = document.createElement("small");
+    words.textContent = `${item.wordCount.toLocaleString()}w`;
+    const remove = document.createElement("button");
+    remove.textContent = "Delete";
+    remove.ariaLabel = `Delete ${item.title}`;
+    remove.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (manuscript.chapters.length === 1) return alert("A manuscript needs one chapter.");
+      if (!confirm(`Delete "${item.title}"?`)) return;
+      syncChapter();
+      manuscript.chapters.splice(index, 1);
+      if (index < activeChapter) activeChapter--;
+      else if (index === activeChapter) {
+        activeChapter = Math.min(activeChapter, manuscript.chapters.length - 1);
+      }
+      render();
+      saveLocal();
+    });
+    row.append(label, words, remove);
+    row.addEventListener("click", () => {
+      if (index === activeChapter) return;
+      syncChapter();
+      activeChapter = index;
+      render();
+      saveLocal();
+      if (matchMedia("(max-width: 55rem)").matches) sidebar.classList.add("collapsed");
+    });
+    return row;
+  }));
+  updateStats();
+}
+
+function updateStats() {
+  const current = manuscript.chapters[activeChapter];
+  const total = manuscript.chapters.reduce((sum, item) => sum + item.wordCount, 0);
+  element("#chapter-stats").textContent = `Chapter: ${current?.wordCount ?? 0} words · ${
+    current?.charCount ?? 0
+  } characters`;
+  element("#total-stats").textContent = `Manuscript: ${total.toLocaleString()} words · ${
+    (total / 300).toFixed(1)
+  } pages`;
+  element("#sidebar-stats").textContent = `${manuscript.chapters.length} chapter${
+    manuscript.chapters.length === 1 ? "" : "s"
+  }`;
+}
+
+function saveLocal() {
+  syncChapter();
+  localStorage.setItem(storageKey, JSON.stringify({ manuscript, activeChapter }));
+  saveStatus.textContent = fileHandle && canWrite
+    ? `Saved in app · syncing ${fileHandle.name}`
+    : "Saved in app only";
+}
+
+function changed() {
+  syncChapter();
+  saveStatus.textContent = "Unsaved changes";
+  updateStats();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveLocal();
+    if (desktopFileOpen) {
+      void saveDesktopFile(false);
+    } else if (fileHandle && canWrite) {
+      void writeFile(fileHandle).catch((error) => {
+        canWrite = false;
+        console.error("Automatic disk save failed.", error);
+        saveStatus.textContent = "Saved in app only · disk save failed";
+      });
+    }
+  }, 500);
+}
+
+/** @returns {Promise<IDBDatabase>} */
+function database() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("WriterToolsDB", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("handles");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/** @param {WritableFileHandle | null} value */
+async function storeHandle(value) {
+  try {
+    const db = await database();
+    const transaction = db.transaction("handles", "readwrite");
+    if (value) transaction.objectStore("handles").put(value, handleKey);
+    else transaction.objectStore("handles").delete(handleKey);
+  } catch (error) {
+    console.warn("Could not persist the file handle.", error);
+  }
+}
+
+/** @returns {Promise<WritableFileHandle | null>} */
+async function restoreHandle() {
+  try {
+    const db = await database();
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction("handles").objectStore("handles").get(handleKey);
+      request.onsuccess = () => resolve(request.result ?? null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.warn("Could not restore the file handle.", error);
+    return null;
+  }
+}
+
+/** @param {WritableFileHandle} handle */
+async function writeFile(handle) {
+  const writable = await handle.createWritable();
+  await writable.write(serialize());
+  await writable.close();
+  saveLocal();
+  saveStatus.textContent = `Saved to ${handle.name}`;
+}
+
+/** @param {WritableFileHandle} handle @param {boolean} request */
+async function hasWritePermission(handle, request) {
+  if ((await handle.queryPermission({ mode: "readwrite" })) === "granted") return true;
+  return request && (await handle.requestPermission({ mode: "readwrite" })) === "granted";
+}
+
+/** @param {boolean} saveAs */
+async function saveDesktopFile(saveAs) {
+  try {
+    const response = await fetch("/editor/files/save", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-writer-tools": "1" },
+      body: JSON.stringify({ content: serialize(), filename: manuscript.filename, saveAs }),
+    });
+    if (response.status === 204) return;
+    if (!response.ok) throw new Error(`Disk save failed: ${response.status}`);
+    const result = await response.json();
+    manuscript.filename = result.name;
+    desktopFileOpen = true;
+    saveLocal();
+    saveStatus.textContent = `Saved to ${result.name}`;
+    element("#filename").textContent = result.name;
+  } catch (error) {
+    console.error(error);
+    saveStatus.textContent = "Saved in app only · disk save failed";
+  }
+}
+
+async function saveToDisk() {
+  if (desktopFiles) return await saveDesktopFile(!desktopFileOpen);
+  if (fileHandle) {
+    try {
+      canWrite = await hasWritePermission(fileHandle, true);
+      if (canWrite) return await writeFile(fileHandle);
+    } catch (error) {
+      console.warn("The previous file handle is no longer writable.", error);
+      fileHandle = null;
+      canWrite = false;
+      await storeHandle(null);
+    }
+  }
+
+  if (!filePicker.showSaveFilePicker) return download();
+  try {
+    fileHandle = await filePicker.showSaveFilePicker({
+      suggestedName: manuscript.filename,
+      types: [{
+        description: "Markdown",
+        accept: {
+          "text/markdown": [".md", ".markdown"],
+          "text/plain": [".txt"],
+        },
+      }],
+    });
+    canWrite = true;
+    manuscript.filename = fileHandle.name;
+    await storeHandle(fileHandle);
+    await writeFile(fileHandle);
+    render();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    console.warn("Native save picker failed; using a download instead.", error);
+    download();
+  }
+}
+
+function download() {
+  const url = URL.createObjectURL(new Blob([serialize()], { type: "text/markdown" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = manuscript.filename;
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  saveStatus.textContent = `Exported ${manuscript.filename}`;
+}
+
+/**
+ * @param {File} file
+ * @param {WritableFileHandle | null} [handle]
+ * @param {boolean} [writable]
+ */
+async function loadFile(file, handle = null, writable = false) {
+  manuscript = parseManuscript(await file.text(), file.name);
+  activeChapter = 0;
+  fileHandle = handle;
+  canWrite = writable;
+  await storeHandle(handle);
+  render();
+  saveLocal();
+  modal.classList.add("hidden");
+}
+
+async function openFile() {
+  if (desktopFiles) return await openDesktopFile();
+  if (!filePicker.showOpenFilePicker) return fileInput.click();
+  try {
+    const handles = await filePicker.showOpenFilePicker({
+      types: [{
+        description: "Markdown",
+        accept: {
+          "text/markdown": [".md", ".markdown"],
+          "text/plain": [".txt"],
+        },
+      }],
+      multiple: false,
+    });
+    const handle = handles[0];
+    if (handle) {
+      const writable = await hasWritePermission(handle, true);
+      await loadFile(await handle.getFile(), handle, writable);
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    console.warn("Native open picker failed; using the upload picker instead.", error);
+    fileInput.click();
+  }
+}
+
+async function openDesktopFile() {
+  try {
+    const response = await fetch("/editor/files/open", {
+      method: "POST",
+      headers: { "x-writer-tools": "1" },
+    });
+    if (response.status === 204) return;
+    if (!response.ok) throw new Error(`File open failed: ${response.status}`);
+    const result = await response.json();
+    manuscript = parseManuscript(result.content, result.name);
+    activeChapter = 0;
+    fileHandle = null;
+    canWrite = false;
+    desktopFileOpen = true;
+    render();
+    saveLocal();
+    saveStatus.textContent = `Opened ${result.name}`;
+    modal.classList.add("hidden");
+  } catch (error) {
+    console.error(error);
+    alert("The manuscript could not be opened.");
+  }
+}
+
+function newManuscript() {
+  const title = prompt("Manuscript title:", "My Novel")?.trim() || "Untitled Manuscript";
+  manuscript = blankManuscript(title);
+  activeChapter = 0;
+  fileHandle = null;
+  canWrite = false;
+  desktopFileOpen = false;
+  void storeHandle(null);
+  render();
+  saveLocal();
+  modal.classList.add("hidden");
+}
+
+function loadSample() {
+  manuscript = parseManuscript(
+    `---
+{"title":"The Chronicler's Compass","author":"Writer Tools"}
+---
+
+<!-- chapter: Chapter 1: The Dust of Alexandria -->
+
+The library did not burn in a single cataclysm of flame. It eroded slowly, piece by precious piece.
+
+<!-- chapter: Chapter 2: The Northern Passage -->
+
+Three weeks into the voyage across the Aegean, the winds turned merciless.
+
+<!-- chapter: Chapter 3: The Hidden Vault -->
+
+Beneath the monastery foundations, a single copper key clicked into place.
+`,
+    "the-chroniclers-compass.md",
+  );
+  activeChapter = 0;
+  fileHandle = null;
+  canWrite = false;
+  desktopFileOpen = false;
+  void storeHandle(null);
+  render();
+  saveLocal();
+  modal.classList.add("hidden");
+}
+
+editor.addEventListener("input", changed);
+editor.addEventListener("paste", (event) => {
+  event.preventDefault();
+  document.execCommand("insertText", false, event.clipboardData?.getData("text/plain") ?? "");
+});
+manuscriptTitle.addEventListener("input", () => {
+  manuscript.frontmatter.title = manuscriptTitle.value.trim() || "Untitled Manuscript";
+  changed();
+});
+chapterTitle.addEventListener("input", () => {
+  const current = manuscript.chapters[activeChapter];
+  if (!current) return;
+  current.title = chapterTitle.value.trim() || `Chapter ${activeChapter + 1}`;
+  element("#chapter-breadcrumb").textContent = current.title;
+  changed();
+});
+element("#add-chapter").addEventListener("click", () => {
+  syncChapter();
+  manuscript.chapters.push(
+    chapter(`Chapter ${manuscript.chapters.length + 1}: Untitled`, "<p></p>"),
+  );
+  activeChapter = manuscript.chapters.length - 1;
+  render();
+  saveLocal();
+  chapterTitle.select();
+});
+element("#sidebar-toggle").addEventListener(
+  "click",
+  () => sidebar.classList.toggle("collapsed"),
+);
+element("#save-file").addEventListener("click", () => void saveToDisk());
+element("#open-file").addEventListener("click", () => void openFile());
+element("#new-file").addEventListener("click", newManuscript);
+element("#export-file").addEventListener("click", download);
+element("#modal-open").addEventListener("click", () => void openFile());
+element("#modal-new").addEventListener("click", newManuscript);
+element("#modal-sample").addEventListener("click", loadSample);
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files?.[0];
+  if (file) void loadFile(file);
+  fileInput.value = "";
+});
+for (const button of document.querySelectorAll("[data-command]")) {
+  button.addEventListener("click", () => {
+    if (!(button instanceof HTMLElement)) return;
+    document.execCommand(button.dataset.command ?? "", false, button.dataset.value);
+    editor.focus();
+    changed();
+  });
+}
+globalThis.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+    event.preventDefault();
+    void saveToDisk();
+  }
+});
+globalThis.addEventListener("dragover", (event) => event.preventDefault());
+globalThis.addEventListener("drop", (event) => {
+  event.preventDefault();
+  const file = event.dataTransfer?.files[0];
+  if (file && /\.(?:md|markdown|txt)$/i.test(file.name)) void loadFile(file);
+});
+
+try {
+  const saved = localStorage.getItem(storageKey);
+  if (saved) {
+    const state = JSON.parse(saved);
+    if (state?.manuscript?.chapters?.length) {
+      manuscript = state.manuscript;
+      activeChapter = Math.min(Number(state.activeChapter) || 0, manuscript.chapters.length - 1);
+      modal.classList.add("hidden");
+    }
+  }
+} catch (error) {
+  console.warn("Could not restore the manuscript.", error);
+}
+fileHandle = await restoreHandle();
+if (fileHandle) {
+  try {
+    canWrite = await hasWritePermission(fileHandle, false);
+  } catch (error) {
+    console.warn("The stored file handle is no longer available.", error);
+    fileHandle = null;
+    canWrite = false;
+    await storeHandle(null);
+  }
+  try {
+    const response = await fetch("/editor/files/status");
+    if (response.ok) {
+      const status = await response.json();
+      desktopFiles = status.available === true;
+      desktopFileOpen = typeof status.name === "string";
+    }
+  } catch {
+    desktopFiles = false;
+  }
+}
+if (matchMedia("(max-width: 55rem)").matches) sidebar.classList.add("collapsed");
+render();

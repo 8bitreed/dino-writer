@@ -1,0 +1,4 @@
+.data/
+desktop/
+dist/
+deno.lock

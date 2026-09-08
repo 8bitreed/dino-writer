@@ -1,0 +1,73 @@
+// @ts-check
+import { Hono } from "@hono/hono";
+import { html } from "@hono/hono/html";
+import { serveStatic } from "@hono/hono/deno";
+import { etag } from "@hono/hono/etag";
+import { HTTPException } from "@hono/hono/http-exception";
+import { methodNotAllowed } from "@hono/hono/method-not-allowed";
+import { NONCE, secureHeaders } from "@hono/hono/secure-headers";
+import { loadAssets } from "./lib/assets.js";
+import { desktopFileRoutes } from "./routes/desktop-files.js";
+import { editorRoutes } from "./routes/editor.js";
+import { pageRoutes } from "./routes/pages.js";
+import { postRoutes } from "./routes/posts.js";
+import { createLayout } from "./views/layout.js";
+
+/** @param {(name: string) => {script: string, styles: string[]}} [asset] */
+export async function createApp(asset) {
+  asset ??= await loadAssets();
+  const layout = createLayout(asset);
+  const app = new Hono();
+
+  app.use(
+    "*",
+    secureHeaders({
+      contentSecurityPolicy: {
+        defaultSrc: ["'none'"],
+        scriptSrc: ["'self'", NONCE],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        baseUri: ["'none'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+      permissionsPolicy: {
+        camera: [],
+        geolocation: [],
+        microphone: [],
+      },
+      referrerPolicy: "no-referrer",
+    }),
+  );
+  app.use("*", methodNotAllowed({ app }));
+  app.use("/.vite/*", (c) => Promise.resolve(c.notFound()));
+  app.use("*", etag(), serveStatic({ root: "./dist" }));
+
+  app.route("/", pageRoutes(layout));
+  app.route("/", postRoutes(layout));
+  app.route("/", editorRoutes(layout));
+  app.route("/", desktopFileRoutes());
+
+  app.notFound((c) =>
+    c.html(
+      layout(c, {
+        title: "404 - Not Found",
+        body: html`
+          <div class="not-found stack">
+            <h1>404</h1>
+            <p>The page you're looking for doesn't exist.</p>
+            <p><a class="button primary" href="/">Back to Home</a></p>
+          </div>
+        `,
+      }),
+      404,
+    )
+  );
+  app.onError((error, c) => {
+    if (error instanceof HTTPException) return error.getResponse();
+    console.error(error);
+    return c.text("Internal server error", 500);
+  });
+  return app;
+}
