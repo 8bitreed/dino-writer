@@ -48,8 +48,8 @@ const saveStatus = element("#save-status");
 let activeChapter = 0;
 let fileHandle: WritableFileHandle | null = null;
 let canWrite = false;
-let desktopFiles = false;
-let desktopFileOpen = false;
+let isDesktop = false;
+let desktopFileLoaded = false;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 let manuscript: Manuscript = blankManuscript();
 
@@ -297,8 +297,24 @@ function changed(): void {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveLocal();
-    if (desktopFileOpen) {
-      void saveDesktopFile(false);
+    if (isDesktop && desktopFileLoaded) {
+      void fetch("/api/editor/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          content: serialize(),
+          filename: manuscript.filename,
+          saveAs: false,
+        }),
+      }).then(async (res) => {
+        if (res.ok) {
+          const result = await res.json();
+          saveStatus.textContent = `Saved to ${result.name}`;
+        }
+      }).catch((error) => {
+        console.error("Automatic disk save failed.", error);
+        saveStatus.textContent = "Saved in app only · disk save failed";
+      });
     } else if (fileHandle && canWrite) {
       void writeFile(fileHandle).catch((error) => {
         canWrite = false;
@@ -356,29 +372,33 @@ async function hasWritePermission(handle: WritableFileHandle, request: boolean):
   return request && (await handle.requestPermission({ mode: "readwrite" })) === "granted";
 }
 
-async function saveDesktopFile(saveAs: boolean): Promise<void> {
-  try {
-    const response = await fetch("/editor/files/save", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-writer-tools": "1" },
-      body: JSON.stringify({ content: serialize(), filename: manuscript.filename, saveAs }),
-    });
-    if (response.status === 204) return;
-    if (!response.ok) throw new Error(`Disk save failed: ${response.status}`);
-    const result = await response.json();
-    manuscript.filename = result.name;
-    desktopFileOpen = true;
-    saveLocal();
-    saveStatus.textContent = `Saved to ${result.name}`;
-    element("#filename").textContent = result.name;
-  } catch (error) {
-    console.error(error);
-    saveStatus.textContent = "Saved in app only · disk save failed";
+async function saveToDisk(saveAs = false): Promise<void> {
+  if (isDesktop) {
+    try {
+      const response = await fetch("/api/editor/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          content: serialize(),
+          filename: manuscript.filename,
+          saveAs: saveAs || !desktopFileLoaded,
+        }),
+      });
+      if (response.status === 204) return;
+      if (!response.ok) throw new Error(`Disk save failed: ${response.status}`);
+      const result = await response.json();
+      manuscript.filename = result.name;
+      desktopFileLoaded = true;
+      saveLocal();
+      saveStatus.textContent = `Saved to ${result.name}`;
+      element("#filename").textContent = result.name;
+      return;
+    } catch (error) {
+      console.error("Desktop save failed:", error);
+      saveStatus.textContent = "Saved in app only · disk save failed";
+    }
   }
-}
 
-async function saveToDisk(): Promise<void> {
-  if (desktopFiles) return await saveDesktopFile(!desktopFileOpen);
   if (fileHandle) {
     try {
       canWrite = await hasWritePermission(fileHandle, true);
@@ -444,7 +464,29 @@ async function loadFile(
 }
 
 async function openFile(): Promise<void> {
-  if (desktopFiles) return await openDesktopFile();
+  if (isDesktop) {
+    try {
+      const response = await fetch("/api/editor/open", { method: "POST" });
+      if (response.status === 204) return;
+      if (!response.ok) throw new Error(`File open failed: ${response.status}`);
+      const result = await response.json();
+      manuscript = parseManuscript(result.content, result.name);
+      activeChapter = 0;
+      fileHandle = null;
+      canWrite = false;
+      desktopFileLoaded = true;
+      render();
+      saveLocal();
+      saveStatus.textContent = `Opened ${result.name}`;
+      modal.classList.add("hidden");
+      return;
+    } catch (error) {
+      console.error("Desktop open failed:", error);
+      alert("The manuscript could not be opened.");
+      return;
+    }
+  }
+
   if (!filePicker.showOpenFilePicker) return fileInput.click();
   try {
     const handles = await filePicker.showOpenFilePicker({
@@ -469,37 +511,14 @@ async function openFile(): Promise<void> {
   }
 }
 
-async function openDesktopFile(): Promise<void> {
-  try {
-    const response = await fetch("/editor/files/open", {
-      method: "POST",
-      headers: { "x-writer-tools": "1" },
-    });
-    if (response.status === 204) return;
-    if (!response.ok) throw new Error(`File open failed: ${response.status}`);
-    const result = await response.json();
-    manuscript = parseManuscript(result.content, result.name);
-    activeChapter = 0;
-    fileHandle = null;
-    canWrite = false;
-    desktopFileOpen = true;
-    render();
-    saveLocal();
-    saveStatus.textContent = `Opened ${result.name}`;
-    modal.classList.add("hidden");
-  } catch (error) {
-    console.error(error);
-    alert("The manuscript could not be opened.");
-  }
-}
-
 function newManuscript(): void {
   const title = prompt("Manuscript title:", "My Novel")?.trim() || "Untitled Manuscript";
   manuscript = blankManuscript(title);
   activeChapter = 0;
   fileHandle = null;
   canWrite = false;
-  desktopFileOpen = false;
+  desktopFileLoaded = false;
+  if (isDesktop) void fetch("/api/editor/close", { method: "POST" });
   void storeHandle(null);
   render();
   saveLocal();
@@ -529,7 +548,8 @@ Beneath the monastery foundations, a single copper key clicked into place.
   activeChapter = 0;
   fileHandle = null;
   canWrite = false;
-  desktopFileOpen = false;
+  desktopFileLoaded = false;
+  if (isDesktop) void fetch("/api/editor/close", { method: "POST" });
   void storeHandle(null);
   render();
   saveLocal();
@@ -622,16 +642,23 @@ if (fileHandle) {
     canWrite = false;
     await storeHandle(null);
   }
-  try {
-    const response = await fetch("/editor/files/status");
-    if (response.ok) {
-      const status = await response.json();
-      desktopFiles = status.available === true;
-      desktopFileOpen = typeof status.name === "string";
-    }
-  } catch {
-    desktopFiles = false;
-  }
 }
+
+try {
+  const response = await fetch("/api/editor/status");
+  if (response.ok) {
+    const status = await response.json();
+    isDesktop = status.isDesktop === true;
+    desktopFileLoaded = typeof status.activeFile === "string";
+    if (desktopFileLoaded && status.activeFile) {
+      manuscript.filename = status.activeFile;
+      element("#filename").textContent = status.activeFile;
+      saveStatus.textContent = `Active file: ${status.activeFile}`;
+    }
+  }
+} catch {
+  isDesktop = false;
+}
+
 if (matchMedia("(max-width: 55rem)").matches) sidebar.classList.add("collapsed");
 render();

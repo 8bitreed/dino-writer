@@ -1,5 +1,5 @@
-import { createApp } from "./src/app.tsx";
-import "./src/desktop.ts"
+import { createApp } from "./src/app.ts";
+import "./src/desktop.ts";
 
 const app = await createApp();
 

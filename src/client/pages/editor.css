@@ -1,3 +1,5 @@
+@import "../app.css";
+
 .editor-mode {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;

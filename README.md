@@ -1,7 +1,7 @@
 # Writer Tools
 
-A local-first manuscript editor, name generator, and Markdown publication reader built as a small
-Hono MPA. Deno serves the application, bundles browser JavaScript and CSS, and Deno Desktop packages
+A local-first manuscript editor built with Deno standard library HTTP routing and safe HTML template
+literals. Deno serves the application, bundles browser TypeScript and CSS, and Deno Desktop packages
 it in a native webview.
 
 ## Run
@@ -39,7 +39,7 @@ deno task desktop
 ```
 
 Desktop builds are written under `desktop/`. Deno Desktop selects a private loopback port, embeds
-the bundled output and Markdown posts, and opens the Hono application in a native webview.
+the bundled output, and opens the application in a native webview.
 
 Check formatting, linting, TypeScript types, and tests:
 
@@ -49,62 +49,36 @@ deno task check
 
 ## Structure
 
-- `src/app.ts` configures middleware and mounts feature route modules.
-- `src/routes/` contains independent Hono sub-apps mounted with `app.route()`.
-- `src/views/` contains Hono `html` literal layouts.
-- `src/lib/` contains only small application-specific helpers.
+- `src/app.ts` defines all HTTP routes using `@std/http/unstable-route`, the editor template, and
+  desktop editor API handlers.
+- `src/views/` contains the HTML template literal layout shell.
+- `src/lib/` contains HTML escaping (`html.ts`) and asset resolving helpers.
 - `src/client/` contains browser-only vanilla TypeScript and CSS bundled by Deno.
 - `src/client/static/` contains unchanged files copied directly to the root of `dist/`.
-- `src/posts/` contains filesystem-backed Markdown posts.
 
 ## Editor
 
-The editor stores the active manuscript in localStorage, remembers granted file handles in
-IndexedDB, and uses the File System Access API when available. It supports multiple chapters,
-Markdown import/export, drag-and-drop opening, direct saves, Ctrl/Cmd+S, a sample manuscript, and
-live word, page, and character counts. Browsers without direct file access use normal uploads and
-downloads.
+The editor is the root route (`/`). It stores the active manuscript in localStorage, remembers
+granted file handles in IndexedDB, and integrates with native desktop file dialogs or the File
+System Access API when available. It supports multiple chapters, Markdown import/export,
+drag-and-drop opening, direct saves, Ctrl/Cmd+S, a sample manuscript, and live word, page, and
+character counts. Browsers without direct file access use normal uploads and downloads.
 
 ## Browser assets
 
-`build.ts` automatically registers every TypeScript file under `src/client/pages/` alongside
-`src/client/app.ts`. `deno task build` writes content-hashed files to `dist/assets/` and records
-them in `dist/manifest.json`.
+`build.ts` bundles the editor client code (`src/client/pages/editor.ts`) and styles
+(`src/client/pages/editor.css`). `deno task build` writes content-hashed files to `dist/assets/` and
+records them in `dist/manifest.json`.
 
-`src/lib/assets.ts` exposes an `asset()` helper that resolves source names to their hashed scripts
-and imported styles. The layout calls it automatically, always includes `app.js`, and accepts
-optional page scripts by name:
-
-```ts
-layout(c, {
-  title: "About",
-  scripts: ["about.js"],
-  body: html`<h1>About</h1>`,
-});
-```
-
-Adding `src/client/pages/contact.ts` automatically registers it with the bundle step.
-`asset("contact.js")` returns its hashed URL and any CSS imported by that entry. Hono serves the
-generated `/assets/*` files.
+`src/lib/assets.ts` exposes an `asset()` helper that resolves asset names to their hashed script and
+styles. The layout calls it to inject the stylesheet and module script with CSP nonces.
 
 Files under `src/client/static/` bypass bundling and hashing. For example,
 `src/client/static/robots.txt` is copied to `dist/robots.txt`.
 
-Add a feature by exporting a Hono sub-app:
-
-```js
-import { Hono } from "@hono/hono";
-import { html } from "@hono/hono/html";
-
-export const docsRoutes = new Hono()
-  .get("/docs", (c) => c.html(html`<h1>Docs</h1>`));
-```
-
-Mount it with `app.route("/", docsRoutes)`.
-
 ## Secure defaults
 
-Hono HTML literals escape interpolated values. The Markdown renderer escapes source content before
-adding its supported formatting. Middleware provides a nonce-based CSP, secure headers, ETags,
-static-file containment, and correct method handling. Desktop and server tasks grant only the
-network, environment, and read permissions needed by the application.
+Tagged template literal function `html` automatically escapes interpolated strings. Middleware
+provides a nonce-based CSP, secure headers, static-file containment, and method handling. Desktop
+and server tasks grant only the network, environment, and file permissions needed by the
+application.

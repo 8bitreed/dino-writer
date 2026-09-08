@@ -1,32 +1,21 @@
 export interface AssetEntry {
-  file?: string;
-  css?: string[];
-  src?: string;
-  name?: string;
-  isEntry?: boolean;
-}
-
-export type AssetResolver = (name: string) => {
   script: string;
   styles: string[];
-};
+}
+
+export type AssetResolver = (name?: string) => AssetEntry;
 
 export async function loadAssets(): Promise<AssetResolver> {
   const manifest: Record<string, AssetEntry> = JSON.parse(
     await Deno.readTextFile("./dist/manifest.json"),
   );
 
-  return function asset(name: string) {
-    const baseName = name.replace(/\.(js|ts)$/, "");
-    const matches = Object.values(manifest).filter((entry) =>
-      entry.isEntry && (entry.name === baseName || entry.src?.endsWith(`/${name}`))
-    );
-    if (matches.length !== 1 || !matches[0].file) {
-      throw new Error(`Manifest has no unique ${name} entry`);
+  return function asset(name = "editor"): AssetEntry {
+    const key = name.replace(/\.(js|ts)$/, "");
+    const entry = manifest[key] ?? manifest["editor"];
+    if (!entry) {
+      throw new Error(`Asset not found in manifest: ${name}`);
     }
-    return {
-      script: `/${matches[0].file}`,
-      styles: (matches[0].css ?? []).map((path) => `/${path}`),
-    };
+    return entry;
   };
 }
