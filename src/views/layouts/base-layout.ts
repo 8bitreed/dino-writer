@@ -7,7 +7,7 @@ export interface LayoutOptions {
   content: HtmlEscapedString | string;
 }
 
-export function renderLayout(
+export function baseLayout(
   asset: AssetResolver,
   options: LayoutOptions,
 ): HtmlEscapedString {

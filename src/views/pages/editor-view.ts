@@ -1,8 +1,6 @@
-import type { AssetResolver } from "../../lib/assets.ts";
 import { html, type HtmlEscapedString } from "../../lib/html.ts";
-import { renderLayout } from "../layouts/base-layout.ts";
 
-function editorTemplate(): HtmlEscapedString {
+export function editorTemplate(): HtmlEscapedString {
   return html`
     <header class="editor-topbar">
       <div class="topbar-group">
@@ -63,12 +61,4 @@ function editorTemplate(): HtmlEscapedString {
       <span id="total-stats">Manuscript: 0 words</span>
     </footer>
   `;
-}
-
-export function editorView(asset: AssetResolver): HtmlEscapedString {
-  return renderLayout(asset, {
-    title: "Manuscript",
-    bodyClass: "editor-mode",
-    content: editorTemplate(),
-  });
 }
