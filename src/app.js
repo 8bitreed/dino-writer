@@ -41,7 +41,7 @@ export async function createApp(asset) {
     }),
   );
   app.use("*", methodNotAllowed({ app }));
-  app.use("/.vite/*", (c) => Promise.resolve(c.notFound()));
+  app.use("/manifest.json", (c) => Promise.resolve(c.notFound()));
   app.use("*", etag(), serveStatic({ root: "./dist" }));
 
   app.route("/", pageRoutes(layout));

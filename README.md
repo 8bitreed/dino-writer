@@ -1,8 +1,8 @@
 # Writer Tools
 
 A local-first manuscript editor, name generator, and Markdown publication reader built as a small
-Hono MPA. Deno serves the application, Vite bundles browser JavaScript and CSS, and Deno Desktop
-packages it in a native webview.
+Hono MPA. Deno serves the application, bundles browser JavaScript and CSS, and Deno Desktop packages
+it in a native webview.
 
 ## Run
 
@@ -29,9 +29,8 @@ Desktop development:
 deno task desktop:dev
 ```
 
-This passes `server.js` explicitly so Desktop uses plain Deno HMR instead of embedding Vite's native
-Rollup dependency, which is currently incompatible with the experimental Desktop HMR runtime.
-Restart the task after changing client JavaScript or CSS; server handler edits use HMR.
+This passes `server.js` explicitly so Desktop uses plain Deno HMR. Restart the task after changing
+client JavaScript or CSS; server handler edits use HMR.
 
 Build the desktop application configured for the current platform:
 
@@ -40,7 +39,7 @@ deno task desktop
 ```
 
 Desktop builds are written under `desktop/`. Deno Desktop selects a private loopback port, embeds
-the Vite output and Markdown posts, and opens the Hono application in a native webview.
+the bundled output and Markdown posts, and opens the Hono application in a native webview.
 
 Check formatting, linting, JavaScript types, and tests:
 
@@ -54,9 +53,9 @@ deno task check
 - `src/routes/` contains independent Hono sub-apps mounted with `app.route()`.
 - `src/views/` contains Hono `html` literal layouts.
 - `src/lib/` contains only small application-specific helpers.
-- `client/` contains browser-only vanilla JavaScript and CSS compiled by Vite.
-- `client/static/` contains unchanged files copied directly to the root of `dist/`.
-- `posts/` contains filesystem-backed Markdown posts.
+- `src/client/` contains browser-only vanilla JavaScript and CSS bundled by Deno.
+- `src/client/static/` contains unchanged files copied directly to the root of `dist/`.
+- `src/posts/` contains filesystem-backed Markdown posts.
 
 ## Editor
 
@@ -68,9 +67,9 @@ downloads.
 
 ## Browser assets
 
-`vite.config.js` automatically registers every JavaScript file under `client/pages/` alongside
-`client/app.js`. `deno task build` writes content-hashed files to `dist/assets/` and records them in
-`dist/.vite/manifest.json`.
+`build.js` automatically registers every JavaScript file under `src/client/pages/` alongside
+`src/client/app.js`. `deno task build` writes content-hashed files to `dist/assets/` and records
+them in `dist/manifest.json`.
 
 `src/lib/assets.js` exposes an `asset()` helper that resolves source names to their hashed scripts
 and imported styles. The layout calls it automatically, always includes `app.js`, and accepts
@@ -84,11 +83,12 @@ layout(c, {
 });
 ```
 
-Adding `client/pages/contact.js` automatically registers it with Vite. `asset("contact.js")` returns
-its hashed URL and any CSS imported by that entry. Hono serves the generated `/assets/*` files.
+Adding `src/client/pages/contact.js` automatically registers it with the bundle step.
+`asset("contact.js")` returns its hashed URL and any CSS imported by that entry. Hono serves the
+generated `/assets/*` files.
 
-Files under `client/static/` bypass Vite transforms and hashing. For example,
-`client/static/robots.txt` is copied to `dist/robots.txt`.
+Files under `src/client/static/` bypass bundling and hashing. For example,
+`src/client/static/robots.txt` is copied to `dist/robots.txt`.
 
 Add a feature by exporting a Hono sub-app:
 

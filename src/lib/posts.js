@@ -1,6 +1,6 @@
 // @ts-check
 
-const directory = "./posts";
+const directory = "./src/posts";
 
 /** @param {string} value */
 const escape = (value) =>

@@ -29,17 +29,16 @@
     }
   },
   "tasks": {
-    "build": "deno run -A npm:vite@7.1.4 build",
-    "check": "deno fmt --check && deno lint && deno check src/main.ts server.js vite.config.js client/app.js client/pages/name-gen.js client/pages/editor.js && deno test --allow-read=dist,posts,tests --allow-write=tests",
-    "desktop": "deno desktop --include posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell .",
-    "desktop:dev": "deno task build && deno desktop --hmr --include posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell server.js",
-    "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist,posts --watch=src/,dist/,posts/ src/main.ts",
-    "dev:assets": "deno run -A npm:vite@7.1.4 build --watch",
-    "start": "deno run --allow-env=PORT --allow-net --allow-read=dist,posts src/main.ts"
+    "build": "deno run -A build.js",
+    "check": "deno fmt --check && deno lint && deno check src/main.js server.js build.js src/client/app.js src/client/pages/name-gen.js src/client/pages/editor.js src/client/lib/puma.ts && deno test --allow-read=dist,src/posts,tests --allow-write=tests",
+    "desktop": "deno desktop --include src/posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell .",
+    "desktop:dev": "deno task build && deno desktop --hmr --include src/posts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell server.js",
+    "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist,src/posts --watch=src/,dist/ src/main.js",
+    "dev:assets": "deno run -A build.js --watch",
+    "start": "deno run --allow-env=PORT --allow-net --allow-read=dist,src/posts src/main.js"
   },
   "imports": {
     "@hono/hono": "jsr:@hono/hono@^4.13.5",
-    "@std/path": "jsr:@std/path@^1.1.4",
-    "vite": "npm:vite@7.1.4"
+    "@std/path": "jsr:@std/path@^1.1.4"
   }
 }

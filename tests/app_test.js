@@ -53,6 +53,9 @@ Deno.test("returns custom 404 and method-not-allowed responses", async () => {
   assert(missing.status === 404);
   assert((await missing.text()).includes("The page you're looking for"));
 
+  const manifest = await app.request("/manifest.json");
+  assert(manifest.status === 404);
+
   const response = await app.request("/about", { method: "DELETE" });
   assert(response.status === 405);
   assert(response.headers.get("allow")?.includes("GET"));
