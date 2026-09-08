@@ -2,7 +2,7 @@ import { serveDir } from "@std/http/file-server";
 import { route } from "@std/http/unstable-route";
 import { basename } from "@std/path";
 import { type AssetResolver, loadAssets } from "./lib/assets.ts";
-import { editorTemplate } from "./views/pages/editor-view.ts";
+import { editorView } from "./views/pages/editor.view.ts";
 import { createHtmlResponse, createJsonResponse } from "./lib/response.ts";
 import {
   clearLastFilePath,
@@ -61,16 +61,11 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
         headers: { Allow: "GET, HEAD" },
       });
     }
-    return createHtmlResponse(editorTemplate, {
+    return createHtmlResponse(editorView, {
       title: "Manuscript",
       bodyClass: "editor-mode",
     }, asset);
   });
-
-  router.all(
-    "/editor",
-    () => new Response(null, { status: 301, headers: { Location: "/" } }),
-  );
 
   router.get("/api/editor/status", async () => {
     const desktop = await isDesktop();
