@@ -53,8 +53,8 @@ deno task check
   desktop editor API handlers.
 - `src/views/` contains the HTML template literal layout shell.
 - `src/lib/` contains HTML escaping (`html.ts`) and asset resolving helpers.
-- `src/client/` contains browser-only vanilla TypeScript and CSS bundled by Deno.
-- `src/client/static/` contains unchanged files copied directly to the root of `dist/`.
+- `src/assets/` contains browser-only vanilla TypeScript and CSS bundled by Deno.
+- `src/assets/static/` contains unchanged files copied directly to the root of `dist/`.
 
 ## Editor
 
@@ -66,15 +66,15 @@ character counts. Browsers without direct file access use normal uploads and dow
 
 ## Browser assets
 
-`build.ts` bundles the editor client code (`src/client/pages/editor.ts`) and styles
-(`src/client/pages/editor.css`). `deno task build` writes content-hashed files to `dist/assets/` and
+`build.ts` bundles the editor client code (`src/assets/pages/editor.ts`) and styles
+(`src/assets/pages/editor.css`). `deno task build` writes content-hashed files to `dist/assets/` and
 records them in `dist/manifest.json`.
 
 `src/lib/assets.ts` exposes an `asset()` helper that resolves asset names to their hashed script and
 styles. The layout calls it to inject the stylesheet and module script.
 
-Files under `src/client/static/` bypass bundling and hashing. For example,
-`src/client/static/robots.txt` is copied to `dist/robots.txt`.
+Files under `src/assets/static/` bypass bundling and hashing. For example,
+`src/assets/static/robots.txt` is copied to `dist/robots.txt`.
 
 ## Secure defaults
 

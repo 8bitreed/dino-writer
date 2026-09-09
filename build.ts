@@ -1,7 +1,7 @@
 import { join } from "@std/path";
 
-const entrySrc = "src/client/pages/editor.ts";
-const staticDir = "src/client/static";
+const entrySrc = "src/assets/pages/editor.ts";
+const staticDir = "src/assets/static";
 const distDir = "dist";
 const assetsDir = join(distDir, "assets");
 const manifestPath = join(distDir, "manifest.json");
@@ -108,9 +108,9 @@ if (import.meta.main) {
   await build();
 
   if (Deno.args.includes("--watch")) {
-    console.log("Watching src/client for changes...");
+    console.log("Watching src/assets for changes...");
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const watcher = Deno.watchFs("src/client");
+    const watcher = Deno.watchFs("src/assets");
     for await (const event of watcher) {
       if (event.kind === "access") continue;
       if (timer !== undefined) clearTimeout(timer);
