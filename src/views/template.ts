@@ -12,7 +12,7 @@ type ResponseFunction<T extends TemplateFunction> =
     ? (ctx: RouterContext, props: P, status?: number) => Response
     : (ctx: RouterContext, status?: number) => Response;
 
-export function createTemplate<T extends TemplateFunction>(
+export function createView<T extends TemplateFunction>(
   template: T
 ): ResponseFunction<T> {
   return ((ctx: RouterContext, propsOrStatus?: unknown, status = 200) => {
