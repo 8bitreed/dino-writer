@@ -54,13 +54,7 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
 
   const router = createRouter();
 
-  router.all("/", (req) => {
-    if (req.method !== "GET" && req.method !== "HEAD") {
-      return new Response("Method Not Allowed", {
-        status: 405,
-        headers: { Allow: "GET, HEAD" },
-      });
-    }
+  router.all("/", (_req) => {
     return createHtmlResponse(editorView, {
       title: "Manuscript",
       bodyClass: "editor-mode",
