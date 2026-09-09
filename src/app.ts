@@ -1,75 +1,53 @@
 import { serveDir } from "@std/http/file-server";
 import { route } from "@std/http/unstable-route";
 import { basename } from "@std/path";
-import { type AssetResolver, loadAssets } from "./lib/assets.ts";
+import { loadAssets } from "./lib/assets.ts";
 import { editorView } from "./views/pages/editor.view.ts";
 import { createHtmlResponse, createJsonResponse } from "./lib/response.ts";
 import {
   clearLastFilePath,
-  defaultChooseFile,
-  defaultIsDesktop,
+  chooseFile,
+  checkIsDesktop,
   loadLastFilePath,
   saveLastFilePath,
 } from "./lib/desktop.ts";
 import { createRouter } from "./routes/router.ts";
 
-export interface EditorApiOptions {
-  isDesktop?: () => Promise<boolean> | boolean;
-  chooseFile?: (action: "open" | "save", suggestedName?: string) => Promise<string | null>;
-  readTextFile?: (path: string) => Promise<string>;
-  writeTextFile?: (path: string, content: string) => Promise<void>;
-  loadLastFilePath?: () => Promise<string | null>;
-  saveLastFilePath?: (path: string) => Promise<void>;
-  clearLastFilePath?: () => Promise<void>;
-}
-
-export interface AppOptions {
-  asset?: AssetResolver;
-  editorApiOptions?: EditorApiOptions;
-}
 
 export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Promise<Response>) & {
   fetch(req: Request, info?: Deno.ServeHandlerInfo): Response | Promise<Response>;
   request(url: string | URL, init?: RequestInit): Promise<Response>;
 };
 
-export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Promise<App> {
-  const options = typeof assetOrOptions === "function"
-    ? { asset: assetOrOptions }
-    : (assetOrOptions ?? {});
+export async function createApp(): Promise<App> {
 
-  const asset = options.asset ?? (await loadAssets());
-  const apiOptions = options.editorApiOptions ?? {};
-  const isDesktop = apiOptions.isDesktop ?? defaultIsDesktop;
-  const chooseFile = apiOptions.chooseFile ?? defaultChooseFile;
-  const readTextFile = apiOptions.readTextFile ?? ((p: string) => Deno.readTextFile(p));
-  const writeTextFile = apiOptions.writeTextFile ??
-    ((p: string, c: string) => Deno.writeTextFile(p, c));
-  const loadLastFile = apiOptions.loadLastFilePath ?? loadLastFilePath;
-  const saveLastFile = apiOptions.saveLastFilePath ?? saveLastFilePath;
-  const clearLastFile = apiOptions.clearLastFilePath ?? clearLastFilePath;
+  const assets = await loadAssets();
+
 
   let activePath: string | null = null;
   let restoredLastFile = false;
 
-  const router = createRouter();
+  const router = createRouter({
+    assets: assets,
+    isDesktop: checkIsDesktop,
+  });
 
   router.all("/", (_req) => {
     return createHtmlResponse(editorView, {
       title: "Manuscript",
       bodyClass: "editor-mode",
-    }, asset);
+    }, assets);
   });
 
   router.get("/api/editor/status", async () => {
-    const desktop = await isDesktop();
+    const desktop = await checkIsDesktop();
 
     if (desktop && !activePath && !restoredLastFile) {
       restoredLastFile = true;
-      const lastPath = await loadLastFile();
+      const lastPath = await loadLastFilePath();
       if (lastPath) {
         try {
-          const content = await readTextFile(lastPath);
+          const content = await  Deno.readTextFile(lastPath);
           activePath = lastPath;
           return createJsonResponse({
             isDesktop: true,
@@ -79,7 +57,7 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
           });
         } catch (error) {
           console.warn("Could not reopen the last file.", error);
-          await clearLastFile();
+          await clearLastFilePath();
         }
       }
     }
@@ -106,10 +84,10 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
         return new Response(null, { status: 204 });
       }
       activePath = chosen;
-      await saveLastFile(activePath);
+      await saveLastFilePath(activePath);
     }
 
-    await writeTextFile(activePath, payload.content);
+    await Deno.writeTextFile(activePath, payload.content);
     return createJsonResponse({
       ok: true,
       name: basename(activePath),
@@ -123,9 +101,9 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
       return new Response(null, { status: 204 });
     }
     try {
-      const content = await readTextFile(chosen);
+      const content = await Deno.readTextFile(chosen);
       activePath = chosen;
-      await saveLastFile(activePath);
+      await saveLastFilePath(activePath);
       return createJsonResponse({
         ok: true,
         name: basename(activePath),
@@ -141,7 +119,7 @@ export async function createApp(assetOrOptions?: AssetResolver | AppOptions): Pr
   router.post("/api/editor/close", async () => {
     activePath = null;
     restoredLastFile = true;
-    await clearLastFile();
+    await clearLastFilePath();
     return createJsonResponse({ ok: true });
   });
 

@@ -4,7 +4,7 @@ export function dialogCommand(): string {
   return "powershell";
 }
 
-export async function defaultChooseFile(
+export async function chooseFile(
   action: "open" | "save",
   suggestedName = "manuscript.md",
 ): Promise<string | null> {
@@ -54,7 +54,7 @@ export async function defaultChooseFile(
   }
 }
 
-export async function defaultIsDesktop(): Promise<boolean> {
+export async function checkIsDesktop(): Promise<boolean> {
   try {
     if (Deno.env.get("DENO_SERVE_ADDRESS") || Deno.env.get("DENO_DESKTOP")) {
       return true;
