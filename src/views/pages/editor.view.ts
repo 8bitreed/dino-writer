@@ -1,12 +1,12 @@
 import { html } from "../../lib/html.ts";
 import { baseLayout } from "../layouts/base-layout.ts";
-import { createTemplate } from "../template.ts";
+import { createView } from "../template.ts";
 
 type Props = {
   title: string;
 };
 
-export const editorView = createTemplate((ctx, props: Props) => {
+export const editorView = createView((ctx, props: Props) => {
   return baseLayout({
     title: props.title,
     bodyClass: "editor-mode",
