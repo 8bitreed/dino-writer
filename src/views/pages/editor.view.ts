@@ -1,6 +1,6 @@
 import { html, type HtmlEscapedString } from "../../lib/html.ts";
 
-export function editorTemplate(): HtmlEscapedString {
+export function editorView(): HtmlEscapedString {
   return html`
     <header class="editor-topbar">
       <div class="topbar-group">
