@@ -5,16 +5,17 @@ export interface LayoutOptions {
   title?: string;
   bodyClass?: string;
   content: HtmlEscapedString | string;
+  asset: AssetResolver;
 }
 
 export function baseLayout(
-  asset: AssetResolver,
   options: LayoutOptions,
 ): HtmlEscapedString {
   const {
     title = "Manuscript",
     bodyClass = "",
     content,
+    asset,
   } = options;
 
   const { script, styles } = asset("editor");

@@ -1,10 +1,10 @@
 import { route } from "@std/http/unstable-route";
 import { loadAssets } from "./lib/assets.ts";
-import { createHtmlResponse, createJsonResponse } from "./lib/response.ts";
+import { createJsonResponse } from "./lib/response.ts";
 import { checkIsDesktop } from "./lib/desktop.ts";
 import { createRouter } from "./routes/router.ts";
 import { Routes } from "./routes/routes.ts";
-import { HtmlEscapedString } from "./lib/html.ts";
+// import { HtmlEscapedString } from "./lib/html.ts";
 
 
 export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Promise<Response>) & {
@@ -15,12 +15,12 @@ export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Pr
 export async function createApp(): Promise<App> {
   const assets = await loadAssets();
 
-  const html = <T extends Record<string, unknown>>(
-    template: (data?: T) => HtmlEscapedString | HtmlEscapedString,
-    data: T,
-  ) => {
-    return createHtmlResponse(template, data, assets);
-  };
+  // const html = <T extends Record<string, unknown>>(
+  //   template: HtmlEscapedString,
+  //   data: T,
+  // ) => {
+  //   return createHtmlResponse(template, 200);
+  // };
 
   const json = (data: Record<string, unknown>, status?: number) => {
     return createJsonResponse(data, status);
@@ -29,7 +29,6 @@ export async function createApp(): Promise<App> {
   let router = createRouter({
     assets: assets,
     isDesktop: checkIsDesktop,
-    html,
     json,
   });
 

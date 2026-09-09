@@ -16,10 +16,7 @@ export const Routes = (router: Router): Router => {
   let restoredLastFile = false;
 
   router.all("/", (_req, ctx) => {
-    return ctx.html(editorView, {
-      title: "Manuscript",
-      bodyClass: "editor-mode",
-    });
+    return editorView(ctx, { title: "Hello All!"});
   });
 
   router.get("/api/editor/status", async (_req, ctx) => {
