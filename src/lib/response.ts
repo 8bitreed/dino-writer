@@ -5,7 +5,7 @@ import { baseLayout } from "../views/layouts/base-layout.ts";
 import { AssetResolver } from "./assets.ts";
 
 export const createHtmlResponse = <T extends Record<string, unknown>>(
-  template: (data?: T) => HtmlEscapedString,
+  template: (data?: T) => HtmlEscapedString | HtmlEscapedString,
   data: T,
   asset: AssetResolver,
 ): Response => {
