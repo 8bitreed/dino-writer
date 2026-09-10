@@ -4,11 +4,7 @@ function assert(condition: unknown): asserts condition {
   if (!condition) throw new Error("Assertion failed");
 }
 
-const asset = (_name = "editor") => ({
-  script: "/assets/editor.js",
-  styles: ["/assets/editor.css"],
-});
-const app = await createApp(asset);
+const app = await createApp();
 
 Deno.test("renders editor on root route with its hashed asset entries", async () => {
   const response = await app.request("/");

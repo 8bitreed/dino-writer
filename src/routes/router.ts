@@ -4,35 +4,25 @@ import { type Route, route } from "@std/http/unstable-route";
 import { AssetResolver } from "../lib/assets.ts";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS" | "HEAD";
+
+export type RouteHandler = (
+  req: Request,
+  globalContext: RouterContext,
+) => Response | Promise<Response>;
+
+export type AddRouteFn = (
+  pathname: string | undefined,
+  handler: RouteHandler,
+) => void;
+
 export type Router = {
-  all: (
-    pathname: string | undefined,
-    handler: (req: Request, globalContext: RouterContext) => Response | Promise<Response>,
-  ) => void;
-  get: (
-    pathname: string | undefined,
-    handler: (req: Request, globalContext: RouterContext) => Response | Promise<Response>,
-  ) => void;
-  post: (
-    pathname: string | undefined,
-    handler: (req: Request, globalContext: RouterContext) => Response | Promise<Response>,
-  ) => void;
-  put: (
-    pathname: string | undefined,
-    handler: (req: Request, globalContext: RouterContext) => Response | Promise<Response>,
-  ) => void;
-  delete: (
-    pathname: string | undefined,
-    handler: (req: Request, globalContext: RouterContext) => Response | Promise<Response>,
-  ) => void;
-  options: (
-    pathname: string | undefined,
-    handler: (req: Request, globalContext: RouterContext) => Response | Promise<Response>,
-  ) => void;
-  head: (
-    pathname: string | undefined,
-    handler: (req: Request, globalContext: RouterContext) => Response | Promise<Response>,
-  ) => void;
+  all: AddRouteFn;
+  get: AddRouteFn;
+  post: AddRouteFn;
+  put: AddRouteFn;
+  delete: AddRouteFn;
+  options: AddRouteFn;
+  head: AddRouteFn;
   addRoutes: (route: Route[]) => void;
   getRoutes: () => Route[];
   init: () => ((req: Request) => Response | Promise<Response>) & {
@@ -44,10 +34,6 @@ export type Router = {
 export type RouterContext = {
   assets: AssetResolver;
   isDesktop: () => Promise<boolean> | boolean;
-  // html: <T extends Record<string, unknown>>(
-  //   template: (data?: T) => HtmlEscapedString | HtmlEscapedString,
-  //   data: T,
-  // ) => Response;
   json: (data: Record<string, unknown>, status?: number) => Response;
 };
 
@@ -58,13 +44,9 @@ export type Middleware = (
 
 /* RESPONSES */
 
-const addRoutes = (routes: Route[], newRoutes: Route[]): Route[] => {
-  return [...routes, ...newRoutes];
-};
-
 const processHandler = async (
   _method: HTTPMethod | null,
-  handler: (req: Request, context: RouterContext) => Response | Promise<Response>,
+  handler: RouteHandler,
   context: RouterContext,
   req: Request,
   globalMiddleware: Middleware | null,
@@ -90,13 +72,8 @@ export const createRouter = (
 ): Router => {
   let routes: Route[] = [];
 
-  const addRoute = (
-    method: HTTPMethod | null,
-    pathname: string | undefined,
-    handler: (req: Request, context: RouterContext) => Response | Promise<Response>,
-    routes: Route[],
-  ): Route[] => {
-    return [
+  const addRoute = (method: HTTPMethod | null): AddRouteFn => (pathname, handler) => {
+    routes = [
       ...routes,
       {
         ...(method && { method }),
@@ -108,50 +85,15 @@ export const createRouter = (
   };
 
   return {
-    all: (
-      pathname: string | undefined,
-      handler: (req: Request, ctx: RouterContext) => Response | Promise<Response>,
-    ) => {
-      routes = addRoute(null, pathname, handler, routes);
-    },
-    post: (
-      pathname: string | undefined,
-      handler: (req: Request, ctx: RouterContext) => Response | Promise<Response>,
-    ) => {
-      routes = addRoute("POST", pathname, handler, routes);
-    },
-    get: (
-      pathname: string | undefined,
-      handler: (req: Request, ctx: RouterContext) => Response | Promise<Response>,
-    ) => {
-      routes = addRoute("GET", pathname, handler, routes);
-    },
-    put: (
-      pathname: string | undefined,
-      handler: (req: Request, ctx: RouterContext) => Response | Promise<Response>,
-    ) => {
-      routes = addRoute("PUT", pathname, handler, routes);
-    },
-    delete: (
-      pathname: string | undefined,
-      handler: (req: Request, ctx: RouterContext) => Response | Promise<Response>,
-    ) => {
-      routes = addRoute("DELETE", pathname, handler, routes);
-    },
-    options: (
-      pathname: string | undefined,
-      handler: (req: Request, ctx: RouterContext) => Response | Promise<Response>,
-    ) => {
-      routes = addRoute("OPTIONS", pathname, handler, routes);
-    },
-    head: (
-      pathname: string | undefined,
-      handler: (req: Request, ctx: RouterContext) => Response | Promise<Response>,
-    ) => {
-      routes = addRoute("HEAD", pathname, handler, routes);
-    },
+    all: addRoute(null),
+    get: addRoute("GET"),
+    post: addRoute("POST"),
+    put: addRoute("PUT"),
+    delete: addRoute("DELETE"),
+    options: addRoute("OPTIONS"),
+    head: addRoute("HEAD"),
     addRoutes: (newRoutes) => {
-      routes = addRoutes(routes, newRoutes);
+      routes = [...routes, ...newRoutes];
     },
     getRoutes: (): Route[] => routes,
     init: () => {
