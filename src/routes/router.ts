@@ -2,7 +2,6 @@
 
 import { type Route } from "@std/http/unstable-route";
 import { AssetResolver } from "../lib/assets.ts";
-import { HtmlEscapedString } from "../lib/html.ts";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS" | "HEAD";
 export type Router = {
@@ -36,7 +35,7 @@ export type Router = {
   ) => void;
   addRoutes: (route: Route[]) => void;
   getRoutes: () => Route[];
-  createMiddleware: (middleware: Middleware) => Middleware;
+  addMiddleware: (mw: Middleware) => void;
 };
 
 export type RouterContext = {
@@ -49,13 +48,8 @@ export type RouterContext = {
   json: (data: Record<string, unknown>, status?: number) => Response;
 };
 
-type Before = (req: Request) => Response;
-type After = (req: Request, res: Response) => void;
 
-type Middleware = {
-  before: Before;
-  after: After;
-};
+type Middleware = (req: Request) => boolean | Response | Promise<Response> | Promise<boolean>;
 
 /* RESPONSES */
 
@@ -63,18 +57,35 @@ const addRoutes = (routes: Route[], newRoutes: Route[]): Route[] => {
   return [...routes, ...newRoutes];
 };
 
-const processHandler = (
+const processHandler = async(
   _method: HTTPMethod,
   handler: (req: Request, context: RouterContext) => Response | Promise<Response>,
   context: RouterContext,
   req: Request,
+  middleware: Middleware[] = [],
 ) => {
-  return handler(req, context);
+
+  for (const mw of middleware ?? []) {
+    const result = await mw(req);
+
+    if (result instanceof Response) {
+      return result;
+    }
+
+    if (result === false) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+  }
+
+  return await handler(req, context);
+
 };
 
 export const createRouter = (globalContext: RouterContext, pathnamePrefix?: string): Router => {
   const prefix = pathnamePrefix ?? "";
   let routes: Route[] = [];
+  const middleware: Middleware[] = [];
 
   const addRoute = (
     method: HTTPMethod | null,
@@ -88,7 +99,7 @@ export const createRouter = (globalContext: RouterContext, pathnamePrefix?: stri
         ...(method && { method }),
         pattern: new URLPattern({ pathname: prefix + pathname }),
         handler: (req: Request): Response | Promise<Response> =>
-          processHandler("POST", handler, globalContext, req),
+          processHandler("POST", handler, globalContext, req, middleware),
       },
     ];
   };
@@ -140,9 +151,8 @@ export const createRouter = (globalContext: RouterContext, pathnamePrefix?: stri
       routes = addRoutes(routes, newRoutes);
     },
     getRoutes: (): Route[] => routes,
-    createMiddleware(middleware: Middleware): Middleware {
-      // WIP
-      return middleware;
+    addMiddleware(mw: Middleware): void {
+      middleware.push(mw)
     },
   };
 };

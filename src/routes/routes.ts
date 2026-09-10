@@ -16,7 +16,7 @@ export const Routes = (router: Router): Router => {
   let restoredLastFile = false;
 
   router.all("/", (_req, ctx) => {
-    return editorView(ctx, { title: "Hello All!"});
+    return editorView(ctx, { title: "Hello All!" });
   });
 
   router.get("/api/editor/status", async (_req, ctx) => {

@@ -2,17 +2,21 @@ import { route } from "@std/http/unstable-route";
 import { loadAssets } from "./lib/assets.ts";
 import { createJsonResponse } from "./lib/response.ts";
 import { checkIsDesktop } from "./lib/desktop.ts";
+import { isCsrfSafe } from "./lib/security/csrf.ts";
 import { createRouter } from "./routes/router.ts";
 import { Routes } from "./routes/routes.ts";
 // import { HtmlEscapedString } from "./lib/html.ts";
 
+export interface CreateAppOptions {
+  csrfProtection?: boolean;
+}
 
 export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Promise<Response>) & {
   fetch(req: Request, info?: Deno.ServeHandlerInfo): Response | Promise<Response>;
   request(url: string | URL, init?: RequestInit): Promise<Response>;
 };
 
-export async function createApp(): Promise<App> {
+export async function createApp(options: CreateAppOptions = {}): Promise<App> {
   const assets = await loadAssets();
 
   // const html = <T extends Record<string, unknown>>(
@@ -34,7 +38,11 @@ export async function createApp(): Promise<App> {
 
   router = Routes(router);
 
-  const handler = route(router.getRoutes(), () => new Response("Not Found", { status: 404 }));
+  const routeRequest = route(router.getRoutes(), () => new Response("Not Found", { status: 404 }));
+  const handler = (request: Request, info?: Deno.ServeHandlerInfo) =>
+    options.csrfProtection && !isCsrfSafe(request)
+      ? new Response("Forbidden", { status: 403 })
+      : routeRequest(request, info);
 
   return Object.assign(handler, {
     fetch: handler,

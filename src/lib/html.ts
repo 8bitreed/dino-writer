@@ -167,24 +167,17 @@ function processValue(
   return processLeaf(value, buffer, callbacks);
 }
 
-type HasPromise<T extends readonly unknown[]> = number extends T["length"]
-  ? boolean
-  : T extends readonly [infer Head, ...infer Tail]
-  ? [Head] extends [Promise<unknown>]
-    ? true
-    : Head extends readonly unknown[]
-    ? HasPromise<Head> extends true
-      ? true
+type HasPromise<T extends readonly unknown[]> = number extends T["length"] ? boolean
+  : T extends readonly [infer Head, ...infer Tail] ? [Head] extends [Promise<unknown>] ? true
+    : Head extends readonly unknown[] ? HasPromise<Head> extends true ? true
       : HasPromise<Tail>
     : HasPromise<Tail>
   : false;
 
 export type HtmlResult<T extends readonly unknown[]> = number extends T["length"]
   ? HtmlEscapedString | Promise<HtmlEscapedString>
-  : HasPromise<T> extends true
-  ? Promise<HtmlEscapedString>
-  : HasPromise<T> extends false
-  ? HtmlEscapedString
+  : HasPromise<T> extends true ? Promise<HtmlEscapedString>
+  : HasPromise<T> extends false ? HtmlEscapedString
   : HtmlEscapedString | Promise<HtmlEscapedString>;
 
 export function html<T extends readonly unknown[]>(

@@ -4,8 +4,8 @@ import {
   HtmlEscapedString,
   isSafeHtml,
   raw,
-  stringBufferToString,
   type StringBuffer,
+  stringBufferToString,
 } from "../src/lib/html.ts";
 
 function assertEquals<T>(actual: T, expected: T): void {

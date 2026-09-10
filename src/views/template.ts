@@ -7,15 +7,14 @@ type TemplateFunction = (
   ...args: never[]
 ) => HtmlEscapedString;
 
-type ResponseFunction<T extends TemplateFunction> =
-  T extends (ctx: RouterContext) => HtmlEscapedString
-    ? (ctx: RouterContext, status?: number) => Response
-    : T extends (ctx: RouterContext, props: infer P) => HtmlEscapedString
+type ResponseFunction<T extends TemplateFunction> = T extends
+  (ctx: RouterContext) => HtmlEscapedString ? (ctx: RouterContext, status?: number) => Response
+  : T extends (ctx: RouterContext, props: infer P) => HtmlEscapedString
     ? (ctx: RouterContext, props: P, status?: number) => Response
-    : (ctx: RouterContext, status?: number) => Response;
+  : (ctx: RouterContext, status?: number) => Response;
 
 export function createView<T extends TemplateFunction>(
-  template: T
+  template: T,
 ): ResponseFunction<T> {
   return ((ctx: RouterContext, propsOrStatus?: unknown, status = 200) => {
     if (typeof propsOrStatus === "number") {
@@ -24,7 +23,7 @@ export function createView<T extends TemplateFunction>(
 
     return createHtmlResponse(
       template(ctx, propsOrStatus as never),
-      status
+      status,
     );
   }) as ResponseFunction<T>;
 }
