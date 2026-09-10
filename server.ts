@@ -1,6 +1,6 @@
 import { createApp } from "./src/app.ts";
 import "./src/desktop.ts";
 
-const app = await createApp({ csrfProtection: true });
+const app = await createApp();
 
 Deno.serve(app.fetch);

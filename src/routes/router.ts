@@ -1,6 +1,6 @@
 /* a basic wrapper around deno's @std/http/unstable-route */
 
-import { type Route } from "@std/http/unstable-route";
+import { type Route, route } from "@std/http/unstable-route";
 import { AssetResolver } from "../lib/assets.ts";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS" | "HEAD";
@@ -35,7 +35,10 @@ export type Router = {
   ) => void;
   addRoutes: (route: Route[]) => void;
   getRoutes: () => Route[];
-  addMiddleware: (mw: Middleware) => void;
+  init: () => ((req: Request) => Response | Promise<Response>) & {
+    fetch: (req: Request) => Response | Promise<Response>;
+    request(url: string | URL, init?: RequestInit): Promise<Response>;
+  };
 };
 
 export type RouterContext = {
@@ -48,8 +51,10 @@ export type RouterContext = {
   json: (data: Record<string, unknown>, status?: number) => Response;
 };
 
-
-type Middleware = (req: Request) => boolean | Response | Promise<Response> | Promise<boolean>;
+export type Middleware = (
+  currentRequest: Request,
+  globalContext?: RouterContext,
+) => boolean | Response | Promise<Response | boolean>;
 
 /* RESPONSES */
 
@@ -57,16 +62,15 @@ const addRoutes = (routes: Route[], newRoutes: Route[]): Route[] => {
   return [...routes, ...newRoutes];
 };
 
-const processHandler = async(
-  _method: HTTPMethod,
+const processHandler = async (
+  _method: HTTPMethod | null,
   handler: (req: Request, context: RouterContext) => Response | Promise<Response>,
   context: RouterContext,
   req: Request,
-  middleware: Middleware[] = [],
-) => {
-
-  for (const mw of middleware ?? []) {
-    const result = await mw(req);
+  globalMiddleware: Middleware | null,
+): Promise<Response> => {
+  if (globalMiddleware) {
+    const result = await globalMiddleware(req, context);
 
     if (result instanceof Response) {
       return result;
@@ -75,17 +79,16 @@ const processHandler = async(
     if (result === false) {
       return new Response("Forbidden", { status: 403 });
     }
-
   }
 
   return await handler(req, context);
-
 };
 
-export const createRouter = (globalContext: RouterContext, pathnamePrefix?: string): Router => {
-  const prefix = pathnamePrefix ?? "";
+export const createRouter = (
+  globalContext: RouterContext,
+  globalMiddleware: Middleware | null,
+): Router => {
   let routes: Route[] = [];
-  const middleware: Middleware[] = [];
 
   const addRoute = (
     method: HTTPMethod | null,
@@ -97,9 +100,9 @@ export const createRouter = (globalContext: RouterContext, pathnamePrefix?: stri
       ...routes,
       {
         ...(method && { method }),
-        pattern: new URLPattern({ pathname: prefix + pathname }),
+        pattern: new URLPattern({ pathname }),
         handler: (req: Request): Response | Promise<Response> =>
-          processHandler("POST", handler, globalContext, req, middleware),
+          processHandler(method, handler, globalContext, req, globalMiddleware),
       },
     ];
   };
@@ -151,8 +154,18 @@ export const createRouter = (globalContext: RouterContext, pathnamePrefix?: stri
       routes = addRoutes(routes, newRoutes);
     },
     getRoutes: (): Route[] => routes,
-    addMiddleware(mw: Middleware): void {
-      middleware.push(mw)
+    init: () => {
+      const handler = route(routes, () => new Response("Not Found", { status: 404 }));
+
+      return Object.assign(handler, {
+        fetch: handler,
+        request(url: string | URL, init?: RequestInit): Promise<Response> {
+          const full = url.toString().startsWith("http")
+            ? url.toString()
+            : `http://localhost${url}`;
+          return Promise.resolve(handler(new Request(full, init)));
+        },
+      });
     },
   };
 };
