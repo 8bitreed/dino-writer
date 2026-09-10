@@ -1,4 +1,4 @@
-export class PumaError extends Error {
+export class HtmlFetchError extends Error {
   response?: Response;
   text?: string;
   status?: number;
@@ -7,7 +7,7 @@ export class PumaError extends Error {
 
   constructor(message: string, response?: Response, text?: string) {
     super(message);
-    this.name = "PumaError";
+    this.name = "HtmlFetchError";
     this.response = response;
     this.text = text;
     if (response) {

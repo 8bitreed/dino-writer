@@ -1,12 +1,12 @@
 /**
- * Puma — programmatic HTML fetcher with optional trigger binding
+ * HTML Fetch — programmatic HTML fetcher with optional trigger binding
  *
  * - HTML-only: responses must be text/html to be applied to the DOM
  * - method is optional and defaults to GET
  * - optionally bind an event (trigger) on an element (triggerEl) to call load
  *
  * Example:
- * await puma.load({
+ * await htmlFetch.load({
  *   url: '/search/pizza',
  *   method: 'GET',                 // optional (defaults to GET)
  *   target: '#pizza',
@@ -16,7 +16,7 @@
  */
 
 import { buildUrlWithParams, serializeForm } from "./utilties.ts";
-import { PumaError } from "./PumaError.ts";
+import { HtmlFetchError } from "./HtmlFetchError.ts";
 
 type Swap = "inner" | "outer";
 
@@ -40,13 +40,13 @@ interface SubmitFormOpts {
   trigger?: EventTarget | null;
 }
 
-const PUMA_HEADERS = Object.freeze({
-  Puma: "true",
+const HTML_FETCH_HEADERS = Object.freeze({
+  "Html-Fetch": "true",
   Accept: "text/html",
 });
 
 function req(url: string, options: RequestInit = {}) {
-  const headers = new Headers(PUMA_HEADERS);
+  const headers = new Headers(HTML_FETCH_HEADERS);
   new Headers(options.headers).forEach((value, name) => headers.set(name, value));
 
   return fetch(url, { ...options, headers });
@@ -60,8 +60,7 @@ function swapHtml(targetEl: Element, html: string, swap: Swap | null = "inner") 
   }
 }
 
-
-export function createPuma(root: ParentNode = document) {
+export function createHtmlFetch(root: ParentNode = document) {
   const resolveElement = (value: string | Element) =>
     typeof value === "string" ? root.querySelector(value) : value;
 
@@ -72,7 +71,7 @@ export function createPuma(root: ParentNode = document) {
 
     const handler = () => {
       load(loadOptions).catch((err) => {
-        console.error("Puma: load failed on triggered event", err);
+        console.error("HTML Fetch: load failed on triggered event", err);
       });
     };
 
@@ -102,11 +101,11 @@ export function createPuma(root: ParentNode = document) {
     const contentType = res.headers.get("content-type")?.toLowerCase() ?? "";
 
     if (!contentType.includes("text/html")) {
-      throw new PumaError("Puma: non-HTML response", res, text);
+      throw new HtmlFetchError("Html Fetch: non-HTML response", res, text);
     }
 
     if (!res.ok) {
-      throw new PumaError(`Puma: request failed (${res.status})`, res, text);
+      throw new HtmlFetchError(`Html Fetch: request failed (${res.status})`, res, text);
     }
 
     if (target) {
@@ -161,6 +160,6 @@ export function createPuma(root: ParentNode = document) {
     request: req,
     load,
     submitForm,
-    headers: PUMA_HEADERS,
+    headers: HTML_FETCH_HEADERS,
   };
 }

@@ -1,4 +1,19 @@
-/* a basic wrapper around deno's @std/http/unstable-route */
+/**
+ * A basic router wrapping Deno's `@std/http/unstable-route` with support for
+ * HTTP methods, global context, and basic global middleware.
+ *
+ * @example
+ * ```ts
+ * import { createRouter } from "./router.ts";
+ *
+ * const router = createRouter({}, null);
+ *
+ * router.get("/hello", () => new Response("Hello, world!"));
+ *
+ * const server = router.init();
+ * Deno.serve(server.fetch);
+ * ```
+ */
 
 import { type Route, route } from "@std/http/unstable-route";
 import {

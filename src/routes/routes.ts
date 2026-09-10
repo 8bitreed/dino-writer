@@ -1,4 +1,4 @@
-import { type Router } from "./types.ts";
+import { type Router } from "../framework/types.ts";
 import { editorView } from "../views/pages/editor.view.ts";
 import { basename } from "@std/path";
 import { serveDir } from "@std/http/file-server";

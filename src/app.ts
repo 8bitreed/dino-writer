@@ -2,8 +2,8 @@ import { loadAssets } from "./lib/assets.ts";
 import { createJsonResponse } from "./lib/response.ts";
 import { checkIsDesktop } from "./lib/desktop.ts";
 import { isCsrfSafe } from "./lib/security/csrf.ts";
-import { type Middleware } from "./routes/types.ts";
-import { createRouter } from "./routes/router.ts";
+import { type Middleware } from "./framework/types.ts";
+import { createRouter } from "./framework/router.ts";
 import { Routes } from "./routes/routes.ts";
 
 export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Promise<Response>) & {
