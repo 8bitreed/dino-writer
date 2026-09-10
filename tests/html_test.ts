@@ -1,4 +1,12 @@
-import { html, raw } from "../src/lib/html.ts";
+import {
+  escapeToBuffer,
+  html,
+  HtmlEscapedString,
+  isSafeHtml,
+  raw,
+  stringBufferToString,
+  type StringBuffer,
+} from "../src/lib/html.ts";
 
 function assertEquals<T>(actual: T, expected: T): void {
   if (actual !== expected) {
@@ -45,4 +53,55 @@ Deno.test("html: handles arrays of values and nested templates", () => {
     result.toString(),
     "<ul><li>Item 1</li><li>Item &lt;2&gt;</li><li>Item 3</li></ul>",
   );
+});
+
+Deno.test("html: HtmlEscapedString extends String and has isEscaped", () => {
+  const safe = raw("<span>Safe</span>");
+  assertEquals(safe instanceof String, true);
+  assertEquals(safe instanceof HtmlEscapedString, true);
+  assertEquals(safe.isEscaped, true);
+  assertEquals(isSafeHtml(safe), true);
+  assertEquals(isSafeHtml("plain string"), false);
+  assertEquals(safe.includes("Safe"), true);
+  assertEquals(safe.slice(0, 6), "<span>");
+});
+
+Deno.test("html: handles deeply nested arrays with .flat(Infinity)", () => {
+  const nested = [["a", ["<b>", ["c", raw("<d>")]]]];
+  const result = html`<div>${nested}</div>`;
+  assertEquals(result.toString(), "<div>a&lt;b&gt;c<d></div>");
+});
+
+Deno.test("html: supports Promise children returning Promise<HtmlEscapedString>", async () => {
+  const asyncUser = Promise.resolve("Alice <Admin>");
+  const asyncSafe = Promise.resolve(raw("<em>verified</em>"));
+  const resultPromise = html`<p>${asyncUser} is ${asyncSafe}</p>`;
+
+  assertEquals(resultPromise instanceof Promise, true);
+  const result = await resultPromise;
+  assertEquals(result instanceof HtmlEscapedString, true);
+  assertEquals(result.isEscaped, true);
+  assertEquals(result.toString(), "<p>Alice &lt;Admin&gt; is <em>verified</em></p>");
+});
+
+Deno.test("html: supports async array with Promise children", async () => {
+  const items = [Promise.resolve("Item 1"), Promise.resolve("Item <2>")];
+  const result = await html`<ul>${items}</ul>`;
+  assertEquals(result.toString(), "<ul>Item 1Item &lt;2&gt;</ul>");
+});
+
+Deno.test("html: escapeToBuffer writes directly to buffer", () => {
+  const buffer: StringBuffer = [];
+  escapeToBuffer("Hello <world> & 'friends'", buffer);
+  assertEquals(buffer.join(""), "Hello &lt;world&gt; &amp; &#39;friends&#39;");
+});
+
+Deno.test("html: stringBufferToString supports callbacks", async () => {
+  const buffer: StringBuffer = ["Hello "];
+  const result = await stringBufferToString(buffer, [
+    ({ buffer: buf }) => {
+      buf.push("world");
+    },
+  ]);
+  assertEquals(result.toString(), "Hello world");
 });
