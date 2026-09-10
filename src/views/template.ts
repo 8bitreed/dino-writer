@@ -1,5 +1,5 @@
 import { HtmlEscapedString } from "../lib/html.ts";
-import { type RouterContext } from "../routes/router.ts";
+import { type RouterContext } from "../routes/types.ts";
 import { createHtmlResponse } from "../lib/response.ts";
 
 type TemplateFunction = (

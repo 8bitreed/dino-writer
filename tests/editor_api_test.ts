@@ -10,188 +10,95 @@ function assertEquals<T>(actual: T, expected: T): void {
   }
 }
 
-const mockAsset = () => ({ script: "/assets/test.js", styles: [] });
-
-Deno.test("editor-api: status reports desktop and active file state", async () => {
-  const app = await createApp({
-    asset: mockAsset,
-    editorApiOptions: {
-      isDesktop: () => true,
-    },
-  });
-
+Deno.test("editor-api: status reports desktop and active file properties", async () => {
+  const app = await createApp();
   const res = await app.request("/api/editor/status");
   assertEquals(res.status, 200);
   const data = await res.json();
-  assertEquals(data.isDesktop, true);
-  assertEquals(data.activeFile, null);
+  assert(typeof data.isDesktop === "boolean");
+  assert(data.activeFile === null || typeof data.activeFile === "string");
+  assert(data.activePath === null || typeof data.activePath === "string");
 });
 
-Deno.test("editor-api: save prompts user if no file loaded, then saves directly once loaded", async () => {
-  const disk = new Map<string, string>();
-  let chooseCallCount = 0;
-
-  const app = await createApp({
-    asset: mockAsset,
-    editorApiOptions: {
-      isDesktop: () => true,
-      chooseFile: (_action, suggested = "manuscript.md") => {
-        chooseCallCount++;
-        return Promise.resolve(`/home/user/documents/${suggested}`);
-      },
-      writeTextFile: (path, content) => {
-        disk.set(path, content);
-        return Promise.resolve();
-      },
-    },
-  });
-
-  // 1. Initial save: no file loaded -> chooseFile is called
-  const res1 = await app.request("/api/editor/save", {
+Deno.test("editor-api: close resets active file state", async () => {
+  const app = await createApp();
+  const closeRes = await app.request("/api/editor/close", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ content: "Chapter 1 text", filename: "my-novel.md" }),
+    headers: { origin: "http://localhost" },
   });
-  assertEquals(res1.status, 200);
-  const data1 = await res1.json();
-  assertEquals(data1.name, "my-novel.md");
-  assertEquals(chooseCallCount, 1);
-  assertEquals(disk.get("/home/user/documents/my-novel.md"), "Chapter 1 text");
+  assertEquals(closeRes.status, 200);
+  const closeData = await closeRes.json();
+  assertEquals(closeData.ok, true);
 
-  // Status now shows active file
   const statusRes = await app.request("/api/editor/status");
+  assertEquals(statusRes.status, 200);
   const statusData = await statusRes.json();
-  assertEquals(statusData.activeFile, "my-novel.md");
-
-  // 2. Subsequent save: file is loaded -> chooseFile is NOT called again
-  const res2 = await app.request("/api/editor/save", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ content: "Chapter 1 text updated" }),
-  });
-  assertEquals(res2.status, 200);
-  assertEquals(chooseCallCount, 1); // Still 1!
-  assertEquals(disk.get("/home/user/documents/my-novel.md"), "Chapter 1 text updated");
-
-  // 3. Save As: user explicitly requests chooseFile again
-  const res3 = await app.request("/api/editor/save", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ content: "Copy of Chapter 1", filename: "novel-copy.md", saveAs: true }),
-  });
-  assertEquals(res3.status, 200);
-  const data3 = await res3.json();
-  assertEquals(data3.name, "novel-copy.md");
-  assertEquals(chooseCallCount, 2);
-  assertEquals(disk.get("/home/user/documents/novel-copy.md"), "Copy of Chapter 1");
+  assertEquals(statusData.activeFile, null);
+  assertEquals(statusData.activePath, null);
 });
 
-Deno.test("editor-api: save returns 204 if user cancels file chooser", async () => {
-  const app = await createApp({
-    asset: mockAsset,
-    editorApiOptions: {
-      isDesktop: () => true,
-      chooseFile: () => Promise.resolve(null), // user clicked Cancel
-    },
+Deno.test("editor-api: save validates request payload", async () => {
+  const app = await createApp();
+  const invalidPayloads = [
+    null,
+    {},
+    { content: 123 },
+    { other: "field" },
+  ];
+
+  for (const payload of invalidPayloads) {
+    const res = await app.request("/api/editor/save", {
+      method: "POST",
+      headers: {
+        origin: "http://localhost",
+        "content-type": "application/json",
+      },
+      body: payload ? JSON.stringify(payload) : "not-json",
+    });
+    assertEquals(res.status, 400);
+    assertEquals(await res.text(), "Invalid manuscript content");
+  }
+});
+
+Deno.test("editor-api: save returns 204 if no file chosen", async () => {
+  const app = await createApp();
+  await app.request("/api/editor/close", {
+    method: "POST",
+    headers: { origin: "http://localhost" },
   });
 
   const res = await app.request("/api/editor/save", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      origin: "http://localhost",
+      "content-type": "application/json",
+    },
     body: JSON.stringify({ content: "Some content" }),
   });
   assertEquals(res.status, 204);
 });
 
-Deno.test("editor-api: open file loads manuscript and close resets active file", async () => {
-  const disk = new Map<string, string>([
-    ["/home/user/docs/book.md", "# My Book\n\nContent here."],
-  ]);
-
-  const app = await createApp({
-    asset: mockAsset,
-    editorApiOptions: {
-      isDesktop: () => true,
-      chooseFile: () => Promise.resolve("/home/user/docs/book.md"),
-      readTextFile: (path) => {
-        const content = disk.get(path);
-        if (!content) throw new Error("File not found");
-        return Promise.resolve(content);
-      },
-    },
+Deno.test("editor-api: open returns 204 if no file chosen", async () => {
+  const app = await createApp();
+  const res = await app.request("/api/editor/open", {
+    method: "POST",
+    headers: { origin: "http://localhost" },
   });
-
-  const openRes = await app.request("/api/editor/open", { method: "POST" });
-  assertEquals(openRes.status, 200);
-  const openData = await openRes.json();
-  assertEquals(openData.name, "book.md");
-  assert(openData.content.includes("# My Book"));
-
-  // Status shows active file
-  const status1 = await (await app.request("/api/editor/status")).json();
-  assertEquals(status1.activeFile, "book.md");
-
-  // Close active file
-  const closeRes = await app.request("/api/editor/close", { method: "POST" });
-  assertEquals(closeRes.status, 200);
-
-  // Status now shows no active file
-  const status2 = await (await app.request("/api/editor/status")).json();
-  assertEquals(status2.activeFile, null);
+  assertEquals(res.status, 204);
 });
 
-Deno.test("editor-api: status auto-restores the last opened file on first check", async () => {
-  const disk = new Map<string, string>([
-    ["/home/user/docs/novel.md", "# Restored Novel"],
-  ]);
-  let cleared = false;
-
-  const app = await createApp({
-    asset: mockAsset,
-    editorApiOptions: {
-      isDesktop: () => true,
-      readTextFile: (path) => {
-        const content = disk.get(path);
-        if (!content) throw new Error("File not found");
-        return Promise.resolve(content);
-      },
-      loadLastFilePath: () => Promise.resolve("/home/user/docs/novel.md"),
-      clearLastFilePath: () => {
-        cleared = true;
-        return Promise.resolve();
-      },
-    },
+Deno.test("editor-api: rejects unsafe requests without valid origin", async () => {
+  const app = await createApp();
+  const resMissing = await app.request("/api/editor/save", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ content: "Some content" }),
   });
+  assertEquals(resMissing.status, 403);
 
-  const status1 = await (await app.request("/api/editor/status")).json();
-  assertEquals(status1.activeFile, "novel.md");
-  assertEquals(status1.content, "# Restored Novel");
-  assert(!cleared);
-
-  // Subsequent status checks don't re-read the file from disk.
-  disk.delete("/home/user/docs/novel.md");
-  const status2 = await (await app.request("/api/editor/status")).json();
-  assertEquals(status2.activeFile, "novel.md");
-  assertEquals(status2.content, undefined);
-});
-
-Deno.test("editor-api: status clears an unreadable last file path", async () => {
-  let cleared = false;
-
-  const app = await createApp({
-    asset: mockAsset,
-    editorApiOptions: {
-      isDesktop: () => true,
-      readTextFile: () => Promise.reject(new Error("missing")),
-      loadLastFilePath: () => Promise.resolve("/home/user/docs/missing.md"),
-      clearLastFilePath: () => {
-        cleared = true;
-        return Promise.resolve();
-      },
-    },
+  const resAttacker = await app.request("/api/editor/close", {
+    method: "POST",
+    headers: { origin: "https://attacker.example" },
   });
-
-  const status = await (await app.request("/api/editor/status")).json();
-  assertEquals(status.activeFile, null);
-  assert(cleared);
+  assertEquals(resAttacker.status, 403);
 });

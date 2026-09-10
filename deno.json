@@ -16,7 +16,13 @@
   "compilerOptions": {
     "checkJs": true,
     "strict": true,
-    "lib": ["deno.window", "deno.unstable", "deno.desktop", "dom", "dom.iterable"]
+    "lib": [
+      "deno.window",
+      "deno.unstable",
+      "deno.desktop",
+      "dom",
+      "dom.iterable"
+    ]
   },
   "fmt": {
     "lineWidth": 100,

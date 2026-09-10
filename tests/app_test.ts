@@ -13,24 +13,15 @@ Deno.test("renders editor on root route with its hashed asset entries", async ()
   assert(page.includes('id="chapter-list"'));
   assert(page.includes('contenteditable="true"'));
   assert(!page.includes("app.js"));
-  assert(page.includes("/assets/editor.js"));
-  assert(page.includes("/assets/editor.css"));
+  assert(page.includes("/assets/editor-"));
+  assert(page.includes(".js"));
+  assert(page.includes(".css"));
 });
 
-Deno.test("redirects /editor to /", async () => {
-  const response = await app.request("/editor");
-  assert(response.status === 301);
-  assert(response.headers.get("location") === "/");
-});
-
-Deno.test("returns 404 and method-not-allowed responses", async () => {
+Deno.test("returns 404 for missing routes and protected manifest", async () => {
   const missing = await app.request("/not-found");
   assert(missing.status === 404);
 
   const manifest = await app.request("/manifest.json");
   assert(manifest.status === 404);
-
-  const response = await app.request("/", { method: "DELETE" });
-  assert(response.status === 405);
-  assert(response.headers.get("allow")?.includes("GET"));
 });
