@@ -36,7 +36,7 @@
   },
   "tasks": {
     "build": "deno run -A build.ts",
-    "check": "deno fmt --check && deno lint && deno check src/main.ts server.ts build.ts src/assets/pages/editor.ts && deno test --allow-read=dist,tests",
+    "check": "deno fmt --check && deno lint && deno check src/main.ts server.ts build.ts src/features/editor/editor.client.ts && deno test --allow-read=dist,tests",
     "desktop": "deno desktop --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell .",
     "desktop:dev": "deno task build && deno desktop --hmr --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell server.ts",
     "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist --watch=src/,dist/ src/main.ts",

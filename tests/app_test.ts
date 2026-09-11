@@ -6,15 +6,16 @@ function assert(condition: unknown): asserts condition {
 
 const app = await createApp();
 
-Deno.test("renders editor on root route with its hashed asset entries", async () => {
+Deno.test("renders editor on root route with its registered asset entries", async () => {
   const response = await app.request("/");
   assert(response.status === 200);
   const page = await response.text();
   assert(page.includes('id="chapter-list"'));
   assert(page.includes('contenteditable="true"'));
   assert(!page.includes("app.js"));
-  assert(page.includes("/assets/editor-"));
+  assert(page.includes("/assets/features-editor-editor.client-"));
   assert(page.includes(".js"));
+  assert(page.includes("/assets/features-editor-editor-"));
   assert(page.includes(".css"));
 });
 

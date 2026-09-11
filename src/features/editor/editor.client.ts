@@ -1,5 +1,3 @@
-import "./editor.css";
-
 import { element, textFromHtml } from "../../lib/utilties/dom-utilities.ts";
 import { htmlToMarkdown, markdownToHtml } from "../../lib/utilties/markdown-utilities.ts";
 import {

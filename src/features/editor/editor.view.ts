@@ -1,16 +1,22 @@
 import { html } from "../../framework/html/html.ts";
-import { baseLayout } from "../layouts/base-layout.ts";
 import { createView } from "../../framework/html/template.ts";
+import { baseLayout } from "../../views/layouts/base-layout.ts";
 
 type Props = {
   title: string;
 };
 
 export const editorView = createView((ctx, props: Props) => {
+  const stylesheet = ctx.asset("features/editor/editor.css");
+  const clientScript = ctx.asset("features/editor/editor.client.ts");
+
   return baseLayout({
     title: props.title,
     bodyClass: "editor-mode",
-    asset: ctx.assets,
+    scripts: html`
+      <link rel="stylesheet" href="${stylesheet}">
+      <script type="module" src="${clientScript}"></script>
+    `,
     content: html`
       <header class="editor-topbar">
         <div class="topbar-group">

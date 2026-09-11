@@ -30,7 +30,7 @@ export type Router = {
 };
 
 export type RouterContext = {
-  assets: AssetResolver;
+  asset: AssetResolver;
   isDesktop: () => Promise<boolean> | boolean;
   json: (data: Record<string, unknown>, status?: number) => Response;
 };

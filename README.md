@@ -49,11 +49,11 @@ deno task check
 
 ## Structure
 
-- `src/app.ts` defines all HTTP routes using `@std/http/unstable-route`, the editor template, and
-  desktop editor API handlers.
-- `src/views/` contains the HTML template literal layout shell.
-- `src/lib/` contains HTML escaping (`html.ts`) and asset resolving helpers.
-- `src/assets/` contains browser-only vanilla TypeScript and CSS bundled by Deno.
+- `src/app.ts` creates the router and shared application context.
+- `src/features/` colocates each feature's routes, views, browser TypeScript, and CSS.
+- `src/views/` contains shared HTML template literal layouts.
+- `src/framework/` contains routing, safe HTML templates, and asset resolving helpers.
+- `src/assets/` contains shared CSS and static files.
 - `src/assets/static/` contains unchanged files copied directly to the root of `dist/`.
 
 ## Editor
@@ -66,12 +66,15 @@ character counts. Browsers without direct file access use normal uploads and dow
 
 ## Browser assets
 
-`build.ts` bundles the editor client code (`src/assets/pages/editor.ts`) and styles
-(`src/assets/pages/editor.css`). `deno task build` writes content-hashed files to `dist/assets/` and
-records them in `dist/manifest.json`.
+`build.ts` contains an explicit `entries` list for browser TypeScript and CSS and passes it to the
+reusable bundler in `src/framework/bundle/bundle.ts`. The bundler also handles Deno's `--watch`
+argument. Add each new client entry to that list; client TypeScript uses the `[name].client.ts`
+convention and can live beside its feature code. `deno task build` bundles each entry, writes a
+content-hashed file to `dist/assets/`, and records its source-relative path in `dist/manifest.json`.
 
-`src/lib/assets.ts` exposes an `asset()` helper that resolves asset names to their hashed script and
-styles. The layout calls it to inject the stylesheet and module script.
+`src/framework/assets.ts` exposes `ctx.asset(path)`, which resolves a registered source path such as
+`features/editor/editor.client.ts` to its built URL. Feature views create their own escaped
+stylesheet and script tags and pass them through the base layout's `scripts` slot.
 
 Files under `src/assets/static/` bypass bundling and hashing. For example,
 `src/assets/static/robots.txt` is copied to `dist/robots.txt`.

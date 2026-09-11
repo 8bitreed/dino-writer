@@ -1,11 +1,10 @@
-import type { AssetResolver } from "../../framework/assets.ts";
 import { html, type HtmlEscapedString } from "../../framework/html/html.ts";
 
 export interface LayoutOptions {
   title?: string;
   bodyClass?: string;
   content: HtmlEscapedString | string;
-  asset: AssetResolver;
+  scripts?: HtmlEscapedString;
 }
 
 export function baseLayout(
@@ -15,10 +14,8 @@ export function baseLayout(
     title = "Manuscript",
     bodyClass = "",
     content,
-    asset,
+    scripts = html``,
   } = options;
-
-  const { script, styles } = asset("editor");
 
   return html`
     <!doctype html>
@@ -29,8 +26,7 @@ export function baseLayout(
         <meta name="theme-color" content="#f7f4ef">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <title>${title}</title>
-        ${styles.map((href) => html`<link rel="stylesheet" href="${href}">`)}
-        <script type="module" src="${script}"></script>
+        ${scripts}
       </head>
       <body class="${bodyClass}">
         ${content}

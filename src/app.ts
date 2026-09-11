@@ -19,8 +19,8 @@ export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Pr
  * Middleware is global, meaning it will be applied to all routes.
  * If you need to do an auth check or something similar, you can do it explicitly in the route handler itself.
  */
-export async function createApp(): Promise<App> {
-  const assets = await loadAssets();
+export function createApp(): App {
+  const asset = loadAssets();
 
   const json = (data: Record<string, unknown>, status?: number) => {
     return createJsonResponse(data, status);
@@ -34,7 +34,7 @@ export async function createApp(): Promise<App> {
   };
 
   let router = createRouter({
-    assets: assets,
+    asset,
     isDesktop: checkIsDesktop,
     json,
   }, globalMiddleware);
