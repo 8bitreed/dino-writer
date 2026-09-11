@@ -1,6 +1,7 @@
-export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS" | "HEAD";
-import { AssetResolver } from "../lib/assets.ts";
+import { AssetResolver } from "../assets.ts";
 import { type Route } from "@std/http/unstable-route";
+
+export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS" | "HEAD";
 
 export type RouteHandler = (
   req: Request,

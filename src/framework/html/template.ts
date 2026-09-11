@@ -1,6 +1,6 @@
-import { HtmlEscapedString } from "../lib/html.ts";
-import { type RouterContext } from "../framework/types.ts";
-import { createHtmlResponse } from "../lib/response.ts";
+import { HtmlEscapedString } from "./html.ts";
+import { type RouterContext } from "../routing/types.ts";
+import { createHtmlResponse } from "../routing/response.ts";
 
 type TemplateFunction = (
   ctx: RouterContext,

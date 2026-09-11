@@ -1,6 +1,6 @@
-import { html } from "../../lib/html.ts";
+import { html } from "../../framework/html/html.ts";
 import { baseLayout } from "../layouts/base-layout.ts";
-import { createView } from "../template.ts";
+import { createView } from "../../framework/html/template.ts";
 
 type Props = {
   title: string;

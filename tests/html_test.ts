@@ -6,7 +6,7 @@ import {
   raw,
   type StringBuffer,
   stringBufferToString,
-} from "../src/lib/html.ts";
+} from "../src/framework/html/html.ts";
 
 function assertEquals<T>(actual: T, expected: T): void {
   if (actual !== expected) {

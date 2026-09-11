@@ -1,5 +1,5 @@
-import type { AssetResolver } from "../../lib/assets.ts";
-import { html, type HtmlEscapedString } from "../../lib/html.ts";
+import type { AssetResolver } from "../../framework/assets.ts";
+import { html, type HtmlEscapedString } from "../../framework/html/html.ts";
 
 export interface LayoutOptions {
   title?: string;

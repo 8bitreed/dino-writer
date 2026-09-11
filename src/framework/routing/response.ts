@@ -1,4 +1,4 @@
-import { type HtmlEscapedString } from "./html.ts";
+import { type HtmlEscapedString } from "../html/html.ts";
 
 export const createHtmlResponse = <T extends Record<string, unknown>>(
   template: HtmlEscapedString,
