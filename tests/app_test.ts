@@ -15,7 +15,7 @@ Deno.test("renders editor on root route with its registered asset entries", asyn
   assert(!page.includes("app.js"));
   assert(page.includes("/assets/features-editor-editor.client-"));
   assert(page.includes(".js"));
-  assert(page.includes("/assets/features-editor-editor-"));
+  assert(page.includes("/assets/features-editor-editor.client-"));
   assert(page.includes(".css"));
 });
 

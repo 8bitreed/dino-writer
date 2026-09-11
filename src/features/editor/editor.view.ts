@@ -7,15 +7,12 @@ type Props = {
 };
 
 export const editorView = createView((ctx, props: Props) => {
-  const stylesheet = ctx.asset("features/editor/editor.css");
-  const clientScript = ctx.asset("features/editor/editor.client.ts");
-
   return baseLayout({
     title: props.title,
     bodyClass: "editor-mode",
     scripts: html`
-      <link rel="stylesheet" href="${stylesheet}">
-      <script type="module" src="${clientScript}"></script>
+      <link rel="stylesheet" href="${ctx.asset("features/editor/editor.client.css")}">
+      <script type="module" src="${ctx.asset("features/editor/editor.client.ts")}"></script>
     `,
     content: html`
       <header class="editor-topbar">

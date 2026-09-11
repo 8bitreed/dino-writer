@@ -1,8 +1,21 @@
 import { bundle } from "./src/framework/bundle/bundle.ts";
 
-const entries = [
-  "src/features/editor/editor.client.ts",
-  "src/features/editor/editor.css",
-];
+// auto load all css and ts files that end with .client.ts or .client.css
 
-await bundle(entries);
+function autoLoadClientFiles(path: string = "src/features"): string[] {
+  const entries: string[] = [];
+
+  // recursively
+  for (const entry of Deno.readDirSync(path)) {
+    if (entry.isDirectory) {
+      entries.push(...autoLoadClientFiles(`${path}/${entry.name}`));
+    } else if (
+      entry.isFile && (entry.name.endsWith(".client.ts") || entry.name.endsWith(".client.css"))
+    ) {
+      entries.push(`${path}/${entry.name}`);
+    }
+  }
+  return entries;
+}
+
+await bundle(autoLoadClientFiles());
