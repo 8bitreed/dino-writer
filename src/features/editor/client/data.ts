@@ -15,7 +15,7 @@ export function blankManuscript(title = "Untitled Manuscript"): Manuscript {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
-    chapters: [chapter("Chapter 1: The Beginning", "<p></p>")],
+    chapters: [chapter("Chapter 1", "<p></p>")],
   };
 }
 
@@ -107,18 +107,18 @@ export function serialize(manuscript: Manuscript): string {
 }
 
 export const SAMPLE_NOVEL = `---
-{"title":"The Chronicler's Compass","author":"Writasaurus"}
+{"title":"The Lord of the Rings","author":"J.R.R. Tolkien"}
 ---
 
-<!-- chapter: Chapter 1: The Dust of Alexandria -->
+<!-- chapter: Chapter 1: A Long Expected Party -->
 
-The library did not burn in a single cataclysm of flame. It eroded slowly, piece by precious piece.
+When Mr. Bilbo Baggins of Bag End announced that he would shortly be celebrating his eleventy-first birthday with a party of special magnificence, there was much talk and excitement in Hobbiton.
+<!-- chapter: Chapter 2: The Shadow of the Past -->
 
-<!-- chapter: Chapter 2: The Northern Passage -->
+The talk did not die down in nine or even ninety-nine days. The second disappearance of Mr. Bilbo Baggins was discussed in Hobbiton, and indeed all over the Shire, for a year and a day, and was remembered much longer than that. It became a fireside-story for young hobbits; and eventually Mad Baggins, who used to vanish with a bang and a flash and reappear with bags of jewels and gold, became a favourite character of legend and lived on long after all the true events were forgotten.
 
-Three weeks into the voyage across the Aegean, the winds turned merciless.
 
-<!-- chapter: Chapter 3: The Hidden Vault -->
+<!-- chapter: Chapter 3: Three Is Company -->
 
-Beneath the monastery foundations, a single copper key clicked into place.
+‘You ought to go quietly, and you ought to go soon,’ said Gandalf. Two or three weeks had passed, and still Frodo made no sign of getting ready to go.
 `;

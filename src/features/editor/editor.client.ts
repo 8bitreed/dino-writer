@@ -157,8 +157,18 @@ element("#add-chapter").addEventListener("click", () => {
   addChapter(elements.editor, elements.chapterTitle, actionCallbacks);
 });
 
-element("#sidebar-toggle").addEventListener("click", () => {
+const sidebarToggle = element("#sidebar-toggle");
+
+sidebarToggle.addEventListener("click", () => {
   elements.sidebar.toggle();
+});
+
+// Toggle sidebar with Ctrl+B
+globalThis.addEventListener("keydown", (event) => {
+  if (event.ctrlKey && event.key.toLowerCase() === "b") {
+    event.preventDefault();
+    elements.sidebar.toggle();
+  }
 });
 
 element("#save-file").addEventListener("click", () => {

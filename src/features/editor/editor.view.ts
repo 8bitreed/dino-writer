@@ -56,7 +56,7 @@ export const editorView = createView((ctx, props: Props) => {
             <span id="sidebar-stats">1 chapter</span>
           </editor-sidebar>
           <section class="writing-area">
-            <input id="chapter-title" value="Chapter 1: The Beginning" aria-label="Chapter title">
+            <input id="chapter-title" value="Chapter " aria-label="Chapter title">
             <!--<editor-toolbar style="display: none!" class="editor-toolbar" aria-label="Formatting toolbar"
               for="#editor">
               <button type="button" data-command="bold"><strong>B</strong></button>
