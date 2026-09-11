@@ -26,7 +26,7 @@ export interface WritableFileHandle {
 export interface EditorElements {
   editor: HTMLElement;
   chapterList: HTMLElement;
-  sidebar: EditorSidebar | HTMLElement;
+  sidebar: EditorSidebar;
   chapterTitle: HTMLInputElement;
   manuscriptTitle: HTMLInputElement;
   fileInput: HTMLInputElement;

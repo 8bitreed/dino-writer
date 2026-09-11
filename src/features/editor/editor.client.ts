@@ -158,11 +158,7 @@ element("#add-chapter").addEventListener("click", () => {
 });
 
 element("#sidebar-toggle").addEventListener("click", () => {
-  if (elements.sidebar instanceof EditorSidebar) {
-    elements.sidebar.toggle();
-  } else {
-    elements.sidebar.classList.toggle("collapsed");
-  }
+  elements.sidebar.toggle();
 });
 
 element("#save-file").addEventListener("click", () => {
