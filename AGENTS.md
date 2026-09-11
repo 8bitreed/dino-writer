@@ -28,7 +28,9 @@ deno test --allow-read=dist,tests --filter "renders editor" tests/app_test.ts
 
 When granting permissions, specify the minimal `--allow-*` flags needed (e.g. `--allow-read=...`)
 rather than defaulting to `-A`. Use `deno <subcommand> --help` to verify flags and
-`deno doc <specifier>` to inspect library APIs directly in the terminal.
+`deno doc <specifier>` to inspect library APIs directly in the terminal. Always check
+`deno desktop --help` before searching the web when looking for how to use Deno Desktop or
+troubleshooting Deno Desktop.
 
 Source-only tests such as `tests/html_test.ts` and `tests/csrf_test.ts` do not require a prior asset
 build. Formatting is configured for 100-column lines, semicolons, and double quotes.

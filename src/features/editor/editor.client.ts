@@ -10,13 +10,12 @@ import {
   storeHandle,
 } from "./client/storage.ts";
 import { render as renderUi, updateChangedStatus, updateStats, updateStatus } from "./client/ui.ts";
-import { download, hasWritePermission, saveToDisk, writeFile } from "./client/fileio.ts";
+import { hasWritePermission, saveToDisk, writeFile } from "./client/fileio.ts";
 import {
   type ActionCallbacks,
   addChapter,
   deleteChapter,
   loadFile,
-  newManuscript,
   selectChapter,
 } from "./client/actions.ts";
 
@@ -90,6 +89,56 @@ function changed(): void {
 elements.editor.addEventListener("input", changed);
 elements.editor.addEventListener("command", changed);
 
+const appMenu = element<HTMLElement>("#app-menu");
+const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
+
+function openMenu(): void {
+  appMenu.hidden = false;
+  menuToggle?.setAttribute("aria-expanded", "true");
+}
+
+function closeMenu(): void {
+  appMenu.hidden = true;
+  menuToggle?.setAttribute("aria-expanded", "false");
+}
+
+function toggleMenu(): void {
+  if (appMenu.hidden) {
+    openMenu();
+  } else {
+    closeMenu();
+  }
+}
+
+menuToggle?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleMenu();
+});
+
+document.addEventListener("click", (event) => {
+  const target = event.target as Node | null;
+  if (!appMenu.hidden && !appMenu.contains(target) && !menuToggle?.contains(target)) {
+    closeMenu();
+  }
+});
+
+appMenu.addEventListener("click", (event) => {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest(".menu-item")) {
+    closeMenu();
+  }
+});
+
+(globalThis as unknown as Record<string, unknown>).writasaurus = {
+  save: () => void saveToDisk(elements.editor, elements.saveStatus, saveLocal),
+  open: () => {
+    globalThis.location.href = "/open";
+  },
+  about: () => {
+    globalThis.location.href = "/about";
+  },
+};
+
 elements.manuscriptTitle.addEventListener("input", () => {
   state.manuscript.frontmatter.title = elements.manuscriptTitle.value.trim() ||
     "Untitled Manuscript";
@@ -118,14 +167,6 @@ element("#sidebar-toggle").addEventListener("click", () => {
 
 element("#save-file").addEventListener("click", () => {
   void saveToDisk(elements.editor, elements.saveStatus, saveLocal);
-});
-
-element("#new-file").addEventListener("click", () => {
-  newManuscript(actionCallbacks);
-});
-
-element("#export-file").addEventListener("click", () => {
-  download(state.manuscript, elements.saveStatus);
 });
 
 elements.fileInput.addEventListener("change", () => {
@@ -174,6 +215,9 @@ try {
   if (response.ok) {
     const status = await response.json();
     state.isDesktop = status.isDesktop === true;
+    if (state.isDesktop) {
+      document.body.classList.add("desktop-mode");
+    }
     state.desktopFileLoaded = typeof status.activeFile === "string";
     if (state.desktopFileLoaded && typeof status.content === "string" && status.activeFile) {
       state.manuscript = parseManuscript(status.content, status.activeFile);
@@ -196,11 +240,9 @@ if (!saved && !state.desktopFileLoaded && !sessionStorage.getItem("writasaurus-s
   globalThis.location.replace("/welcome");
 }
 
-if (matchMedia("(max-width: 55rem)").matches) {
-  if (elements.sidebar instanceof EditorSidebar) {
-    elements.sidebar.collapse();
-  } else {
-    elements.sidebar.classList.add("collapsed");
-  }
+if (elements.sidebar instanceof EditorSidebar) {
+  elements.sidebar.collapse();
+} else {
+  elements.sidebar.classList.add("collapsed");
 }
 render();

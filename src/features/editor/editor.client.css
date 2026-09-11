@@ -17,6 +17,7 @@ editor-statusbar {
   gap: 1rem;
   justify-content: space-between;
   padding: 0.55rem 1rem;
+  position: relative;
 }
 
 .editor-topbar {
@@ -30,16 +31,26 @@ editor-statusbar {
   font-size: 0.8rem;
 }
 
-.topbar-group {
+.topbar-left,
+.topbar-right {
   align-items: center;
   display: flex;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   gap: 0.5rem;
-  min-width: 0;
 }
 
-.topbar-group:last-child {
-  justify-content: flex-end;
+.topbar-center {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.75rem;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.desktop-mode .topbar-right {
+  display: none;
 }
 
 .editor-topbar button,
@@ -63,6 +74,95 @@ editor-statusbar {
   color: var(--accent-text);
 }
 
+.menu-toggle {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.45rem 0.6rem;
+}
+
+.hamburger-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  width: 1.15rem;
+}
+
+.hamburger-icon span {
+  background-color: var(--text);
+  border-radius: 2px;
+  display: block;
+  height: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+  width: 100%;
+}
+
+.menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.app-menu {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.35rem;
+  position: absolute;
+  right: 1rem;
+  top: calc(100% + 0.35rem);
+  z-index: 100;
+}
+
+.app-menu[hidden] {
+  display: none;
+}
+
+.menu-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.35rem;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.9rem;
+  justify-content: flex-start;
+  min-height: 2.2rem;
+  padding: 0.45rem 0.85rem;
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--surface-sunken);
+  color: var(--text);
+  outline: none;
+}
+
+.menu-item.primary {
+  font-weight: 600;
+}
+
+.menu-divider {
+  border-top: 1px solid var(--border);
+  margin: 0.35rem 0;
+}
+
 #manuscript-title,
 #chapter-title {
   background: transparent;
@@ -72,10 +172,12 @@ editor-statusbar {
 }
 
 #manuscript-title {
-  flex: 1;
+  flex: 1 1 auto;
+  font-size: 1.15rem;
   font-weight: 700;
-  max-width: 13rem;
-  min-width: 6rem;
+  max-width: 24rem;
+  min-width: 8rem;
+  text-align: center;
 }
 
 #filename,
@@ -220,26 +322,14 @@ editor-canvas > * + * {
   }
 
   .editor-topbar {
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-  }
-
-  .editor-topbar .topbar-group {
-    flex-basis: 100%;
-  }
-
-  .editor-topbar .topbar-group:last-child {
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 0.15rem;
   }
 
   .editor-topbar button,
   .editor-topbar .button {
     flex: 0 0 auto;
-    min-height: 2.5rem;
+    min-height: 2.25rem;
   }
 
   .editor-topbar > strong,
@@ -280,11 +370,8 @@ editor-canvas > * + * {
     padding-inline: 0.5rem;
   }
 
-  .editor-topbar .brand {
-    font-size: 1rem;
-  }
-
   #manuscript-title {
+    font-size: 1rem;
     max-width: none;
   }
 
