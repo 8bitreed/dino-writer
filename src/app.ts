@@ -6,11 +6,19 @@ import { type Middleware } from "./framework/routing/types.ts";
 import { createRouter } from "./framework/routing/router.ts";
 import { Routes } from "./routes/routes.ts";
 
+/* TYPES */
 export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Promise<Response>) & {
   fetch(req: Request, info?: Deno.ServeHandlerInfo): Response | Promise<Response>;
   request(url: string | URL, init?: RequestInit): Promise<Response>;
 };
 
+/* CODE */
+
+/**
+ * Creates the application with all routes and middleware.
+ * Middleware is global, meaning it will be applied to all routes.
+ * If you need to do an auth check or something similar, you can do it explicitly in the route handler itself.
+ */
 export async function createApp(): Promise<App> {
   const assets = await loadAssets();
 

@@ -1,3 +1,5 @@
+import mf from "../../dist/manifest.json" with { type: "json" };
+
 export interface AssetEntry {
   script: string;
   styles: string[];
@@ -5,10 +7,8 @@ export interface AssetEntry {
 
 export type AssetResolver = (name?: string) => AssetEntry;
 
-export async function loadAssets(): Promise<AssetResolver> {
-  const manifest: Record<string, AssetEntry> = JSON.parse(
-    await Deno.readTextFile("./dist/manifest.json"),
-  );
+export const loadAssets = (): AssetResolver => {
+  const manifest: Record<string, AssetEntry> = mf;
 
   return function asset(name = "editor"): AssetEntry {
     const key = name.replace(/\.(js|ts)$/, "");
@@ -18,4 +18,4 @@ export async function loadAssets(): Promise<AssetResolver> {
     }
     return entry;
   };
-}
+};
