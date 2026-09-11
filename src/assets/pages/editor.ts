@@ -1,8 +1,7 @@
 import "./editor.css";
 
-import { textFromHtml } from "../../lib/utilties/dom-utilities.ts";
+import { element, textFromHtml } from "../../lib/utilties/dom-utilities.ts";
 import { htmlToMarkdown, markdownToHtml } from "../../lib/utilties/markdown-utilities.ts";
-
 import {
   createSlugFromString,
   getWordAndCharCountFromString,
@@ -38,12 +37,6 @@ const filePicker = globalThis as unknown as {
   showSaveFilePicker?: (options: object) => Promise<WritableFileHandle>;
   showOpenFilePicker?: (options: object) => Promise<WritableFileHandle[]>;
 };
-
-function element<T extends HTMLElement = HTMLElement>(selector: string): T {
-  const match = document.querySelector(selector);
-  if (!(match instanceof HTMLElement)) throw new Error(`Missing editor element: ${selector}`);
-  return match as T;
-}
 
 const editor = element("#editor");
 const chapterList = element("#chapter-list");
