@@ -11,7 +11,7 @@ export function baseLayout(
   options: LayoutOptions,
 ): HtmlEscapedString {
   const {
-    title = "Manuscript",
+    title = "Writasaurus",
     bodyClass = "",
     content,
     scripts = html``,

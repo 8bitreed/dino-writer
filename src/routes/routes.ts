@@ -1,9 +1,11 @@
 import { type Router } from "../framework/routing/types.ts";
 import { serveDir } from "@std/http/file-server";
 import { editorRoutes } from "../features/editor/editor.routes.ts";
+import { aboutRoutes } from "../features/about/about.routes.ts";
 
 export const Routes = (router: Router): Router => {
   editorRoutes(router);
+  aboutRoutes(router);
 
   router.all("/*", (req) => {
     const { pathname } = new URL(req.url);
