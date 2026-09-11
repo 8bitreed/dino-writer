@@ -1,7 +1,15 @@
 import "./editor.css";
 
-const storageKey = "writer-tools-manuscript-v1";
-const handleKey = "active-file-handle";
+import { textFromHtml } from "../../framework/utilties/dom-utilities.ts";
+import { htmlToMarkdown, markdownToHtml } from "../../framework/utilties/markdown-utilities.ts";
+
+import {
+  createSlugFromString,
+  getWordAndCharCountFromString,
+} from "../../framework/utilties/string-utilities.ts";
+
+const STORAGE_KEY = "writer-tools-manuscript-v1";
+const HANDLE_KEY = "active-file-handle";
 
 export interface Chapter {
   id: string;
@@ -78,71 +86,11 @@ function chapter(title: string, content: string): Chapter {
 }
 
 function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function escapeHtml(value: string): string {
-  const node = document.createElement("div");
-  node.textContent = value;
-  return node.innerHTML;
-}
-
-function textFromHtml(html: string): string {
-  const node = document.createElement("div");
-  node.innerHTML = html;
-  return node.textContent ?? "";
+  return createSlugFromString(value);
 }
 
 function count(text: string): { words: number; chars: number } {
-  const clean = text.trim();
-  return { words: clean ? clean.split(/\s+/).length : 0, chars: clean.length };
-}
-
-function inlineMarkdown(text: string): string {
-  return escapeHtml(text)
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
-}
-
-function markdownToHtml(markdown: string): string {
-  if (!markdown.trim()) return "<p></p>";
-  return markdown.split(/\r?\n\r?\n/).map((part) => {
-    const value = part.trim();
-    if (value.startsWith("### ")) return `<h3>${inlineMarkdown(value.slice(4))}</h3>`;
-    if (value.startsWith("## ")) return `<h2>${inlineMarkdown(value.slice(3))}</h2>`;
-    if (value.startsWith("# ")) return `<h1>${inlineMarkdown(value.slice(2))}</h1>`;
-    if (value.startsWith("> ")) return `<blockquote>${inlineMarkdown(value.slice(2))}</blockquote>`;
-    const lines = value.split(/\r?\n/);
-    if (lines.every((line) => line.startsWith("- "))) {
-      return `<ul>${
-        lines.map((line) => `<li>${inlineMarkdown(line.slice(2))}</li>`).join("")
-      }</ul>`;
-    }
-    return `<p>${inlineMarkdown(value).replace(/\r?\n/g, "<br>")}</p>`;
-  }).join("");
-}
-
-function nodeToMarkdown(node: Node): string {
-  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
-  if (!(node instanceof HTMLElement)) return "";
-  const content = [...node.childNodes].map(nodeToMarkdown).join("");
-  if (node.matches("strong,b")) return `**${content}**`;
-  if (node.matches("em,i")) return `*${content}*`;
-  if (node.matches("br")) return "\n";
-  if (node.matches("h1")) return `# ${content}\n\n`;
-  if (node.matches("h2")) return `## ${content}\n\n`;
-  if (node.matches("h3")) return `### ${content}\n\n`;
-  if (node.matches("blockquote")) return `> ${content}\n\n`;
-  if (node.matches("li")) return `- ${content}\n`;
-  if (node.matches("ul")) return `${content}\n`;
-  if (node.matches("p,div")) return `${content}\n\n`;
-  return content;
-}
-
-function htmlToMarkdown(html: string): string {
-  const node = document.createElement("div");
-  node.innerHTML = html;
-  return [...node.childNodes].map(nodeToMarkdown).join("").trim();
+  return getWordAndCharCountFromString(text);
 }
 
 function parseManuscript(source: string, filename: string): Manuscript {
@@ -284,7 +232,7 @@ function updateStats(): void {
 
 function saveLocal(): void {
   syncChapter();
-  localStorage.setItem(storageKey, JSON.stringify({ manuscript, activeChapter }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ manuscript, activeChapter }));
   saveStatus.textContent = fileHandle && canWrite
     ? `Saved in app · syncing ${fileHandle.name}`
     : "Saved in app only";
@@ -338,8 +286,8 @@ async function storeHandle(value: WritableFileHandle | null): Promise<void> {
   try {
     const db = await database();
     const transaction = db.transaction("handles", "readwrite");
-    if (value) transaction.objectStore("handles").put(value, handleKey);
-    else transaction.objectStore("handles").delete(handleKey);
+    if (value) transaction.objectStore("handles").put(value, HANDLE_KEY);
+    else transaction.objectStore("handles").delete(HANDLE_KEY);
   } catch (error) {
     console.warn("Could not persist the file handle.", error);
   }
@@ -349,7 +297,7 @@ async function restoreHandle(): Promise<WritableFileHandle | null> {
   try {
     const db = await database();
     return await new Promise((resolve, reject) => {
-      const request = db.transaction("handles").objectStore("handles").get(handleKey);
+      const request = db.transaction("handles").objectStore("handles").get(HANDLE_KEY);
       request.onsuccess = () => resolve(request.result ?? null);
       request.onerror = () => reject(request.error);
     });
@@ -627,7 +575,7 @@ globalThis.addEventListener("drop", (event) => {
 });
 
 try {
-  const saved = localStorage.getItem(storageKey);
+  const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     const state = JSON.parse(saved);
     if (state?.manuscript?.chapters?.length) {
