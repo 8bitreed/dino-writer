@@ -4,7 +4,7 @@
   "exports": "./server.ts",
   "desktop": {
     "app": {
-      "name": "Writasuarus",
+      "name": "Writasaurus",
       "identifier": "io.github.8bitreed.dino-writer"
     },
     "output": {

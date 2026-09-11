@@ -1,4 +1,4 @@
-# Writer Tools
+# Writasaurus
 
 A local-first manuscript editor built with Deno standard library HTTP routing and safe HTML template
 literals. Deno serves the application, bundles browser TypeScript and CSS, and Deno Desktop packages
