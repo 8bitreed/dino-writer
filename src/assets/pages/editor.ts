@@ -1,12 +1,12 @@
 import "./editor.css";
 
-import { textFromHtml } from "../../framework/utilties/dom-utilities.ts";
-import { htmlToMarkdown, markdownToHtml } from "../../framework/utilties/markdown-utilities.ts";
+import { textFromHtml } from "../../lib/utilties/dom-utilities.ts";
+import { htmlToMarkdown, markdownToHtml } from "../../lib/utilties/markdown-utilities.ts";
 
 import {
   createSlugFromString,
   getWordAndCharCountFromString,
-} from "../../framework/utilties/string-utilities.ts";
+} from "../../lib/utilties/string-utilities.ts";
 
 const STORAGE_KEY = "writer-tools-manuscript-v1";
 const HANDLE_KEY = "active-file-handle";
