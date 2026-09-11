@@ -1,3 +1,5 @@
+import type { EditorSidebar } from "./components.ts";
+
 export interface Chapter {
   id: string;
   title: string;
@@ -24,10 +26,9 @@ export interface WritableFileHandle {
 export interface EditorElements {
   editor: HTMLElement;
   chapterList: HTMLElement;
-  sidebar: HTMLElement;
+  sidebar: EditorSidebar | HTMLElement;
   chapterTitle: HTMLInputElement;
   manuscriptTitle: HTMLInputElement;
   fileInput: HTMLInputElement;
-  modal: HTMLElement;
   saveStatus: HTMLElement;
 }

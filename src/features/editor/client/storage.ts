@@ -1,11 +1,11 @@
 import type { Manuscript, WritableFileHandle } from "./types.ts";
 
-export const STORAGE_KEY = "writer-tools-manuscript-v1";
+export const STORAGE_KEY = "writasaurus-manuscript-v1";
 export const HANDLE_KEY = "active-file-handle";
 
 export function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("WriterToolsDB", 1);
+    const request = indexedDB.open("WritasaurusDB", 1);
     request.onupgradeneeded = () => request.result.createObjectStore("handles");
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -43,7 +43,8 @@ export function saveLocal(manuscript: Manuscript, activeChapter: number): void {
 
 export function restoreLocal(): { manuscript: Manuscript; activeChapter: number } | null {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY) ??
+      localStorage.getItem("writer-tools-manuscript-v1");
     if (!saved) return null;
     const state = JSON.parse(saved);
     if (state?.manuscript?.chapters?.length) {

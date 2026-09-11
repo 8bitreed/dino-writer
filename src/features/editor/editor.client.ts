@@ -1,5 +1,6 @@
 import { element } from "../../lib/utilties/dom-utilities.ts";
 import type { EditorElements } from "./client/types.ts";
+import { EditorSidebar } from "./client/components.ts";
 import { parseManuscript, serialize } from "./client/data.ts";
 import { state, syncChapter } from "./client/state.ts";
 import {
@@ -9,19 +10,12 @@ import {
   storeHandle,
 } from "./client/storage.ts";
 import { render as renderUi, updateChangedStatus, updateStats, updateStatus } from "./client/ui.ts";
-import {
-  download,
-  hasWritePermission,
-  openFile as openFileDialog,
-  saveToDisk,
-  writeFile,
-} from "./client/fileio.ts";
+import { download, hasWritePermission, saveToDisk, writeFile } from "./client/fileio.ts";
 import {
   type ActionCallbacks,
   addChapter,
   deleteChapter,
   loadFile,
-  loadSample,
   newManuscript,
   selectChapter,
 } from "./client/actions.ts";
@@ -29,11 +23,10 @@ import {
 const elements: EditorElements = {
   editor: element("#editor"),
   chapterList: element("#chapter-list"),
-  sidebar: element("#editor-sidebar"),
+  sidebar: element<EditorSidebar>("#editor-sidebar"),
   chapterTitle: element<HTMLInputElement>("#chapter-title"),
   manuscriptTitle: element<HTMLInputElement>("#manuscript-title"),
   fileInput: element<HTMLInputElement>("#file-input"),
-  modal: element("#welcome-modal"),
   saveStatus: element("#save-status"),
 };
 
@@ -56,7 +49,6 @@ function render(): void {
 const actionCallbacks: ActionCallbacks = {
   render,
   saveLocal,
-  modal: elements.modal,
 };
 
 function changed(): void {
@@ -96,17 +88,7 @@ function changed(): void {
 
 // Event Listeners
 elements.editor.addEventListener("input", changed);
-elements.editor.addEventListener("paste", (event) => {
-  event.preventDefault();
-  document.execCommand("insertText", false, event.clipboardData?.getData("text/plain") ?? "");
-});
-elements.editor.addEventListener("keydown", (event) => {
-  if (event.key !== "Tab") return;
-  event.preventDefault();
-  // A raw tab character collapses to a single space under normal CSS
-  // whitespace rules, so insert non-breaking spaces to render a visible indent.
-  document.execCommand("insertText", false, "\u00A0\u00A0\u00A0\u00A0");
-});
+elements.editor.addEventListener("command", changed);
 
 elements.manuscriptTitle.addEventListener("input", () => {
   state.manuscript.frontmatter.title = elements.manuscriptTitle.value.trim() ||
@@ -127,18 +109,15 @@ element("#add-chapter").addEventListener("click", () => {
 });
 
 element("#sidebar-toggle").addEventListener("click", () => {
-  elements.sidebar.classList.toggle("collapsed");
+  if (elements.sidebar instanceof EditorSidebar) {
+    elements.sidebar.toggle();
+  } else {
+    elements.sidebar.classList.toggle("collapsed");
+  }
 });
 
 element("#save-file").addEventListener("click", () => {
   void saveToDisk(elements.editor, elements.saveStatus, saveLocal);
-});
-
-element("#open-file").addEventListener("click", () => {
-  void openFileDialog(
-    elements.fileInput,
-    (file, handle, writable) => loadFile(file, handle, writable, actionCallbacks),
-  );
 });
 
 element("#new-file").addEventListener("click", () => {
@@ -149,35 +128,11 @@ element("#export-file").addEventListener("click", () => {
   download(state.manuscript, elements.saveStatus);
 });
 
-element("#modal-open").addEventListener("click", () => {
-  void openFileDialog(
-    elements.fileInput,
-    (file, handle, writable) => loadFile(file, handle, writable, actionCallbacks),
-  );
-});
-
-element("#modal-new").addEventListener("click", () => {
-  newManuscript(actionCallbacks);
-});
-
-element("#modal-sample").addEventListener("click", () => {
-  loadSample(actionCallbacks);
-});
-
 elements.fileInput.addEventListener("change", () => {
   const file = elements.fileInput.files?.[0];
   if (file) void loadFile(file, null, false, actionCallbacks);
   elements.fileInput.value = "";
 });
-
-for (const button of document.querySelectorAll("[data-command]")) {
-  button.addEventListener("click", () => {
-    if (!(button instanceof HTMLElement)) return;
-    document.execCommand(button.dataset.command ?? "", false, button.dataset.value);
-    elements.editor.focus();
-    changed();
-  });
-}
 
 globalThis.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
@@ -200,7 +155,6 @@ const saved = restoreLocal();
 if (saved) {
   state.manuscript = saved.manuscript;
   state.activeChapter = saved.activeChapter;
-  elements.modal.classList.add("hidden");
 }
 
 state.fileHandle = await restoreHandle();
@@ -227,7 +181,6 @@ try {
       state.fileHandle = null;
       state.canWrite = false;
       elements.saveStatus.textContent = `Active file: ${status.activeFile}`;
-      elements.modal.classList.add("hidden");
       saveLocal();
     } else if (state.desktopFileLoaded && status.activeFile) {
       state.manuscript.filename = status.activeFile;
@@ -239,5 +192,15 @@ try {
   state.isDesktop = false;
 }
 
-if (matchMedia("(max-width: 55rem)").matches) elements.sidebar.classList.add("collapsed");
+if (!saved && !state.desktopFileLoaded && !sessionStorage.getItem("writasaurus-skip-welcome")) {
+  globalThis.location.replace("/welcome");
+}
+
+if (matchMedia("(max-width: 55rem)").matches) {
+  if (elements.sidebar instanceof EditorSidebar) {
+    elements.sidebar.collapse();
+  } else {
+    elements.sidebar.classList.add("collapsed");
+  }
+}
 render();

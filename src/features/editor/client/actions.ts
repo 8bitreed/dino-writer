@@ -1,12 +1,11 @@
 import type { WritableFileHandle } from "./types.ts";
-import { blankManuscript, chapter, parseManuscript } from "./data.ts";
+import { blankManuscript, chapter, parseManuscript, SAMPLE_NOVEL } from "./data.ts";
 import { storeHandle } from "./storage.ts";
 import { state, syncChapter } from "./state.ts";
 
 export interface ActionCallbacks {
   render: () => void;
   saveLocal: () => void;
-  modal: HTMLElement;
 }
 
 export async function loadFile(
@@ -23,7 +22,6 @@ export async function loadFile(
   if (callbacks) {
     callbacks.render();
     callbacks.saveLocal();
-    callbacks.modal.classList.add("hidden");
   }
 }
 
@@ -38,27 +36,11 @@ export function newManuscript(callbacks: ActionCallbacks): void {
   void storeHandle(null);
   callbacks.render();
   callbacks.saveLocal();
-  callbacks.modal.classList.add("hidden");
 }
 
 export function loadSample(callbacks: ActionCallbacks): void {
   state.manuscript = parseManuscript(
-    `---
-{"title":"The Chronicler's Compass","author":"Writer Tools"}
----
-
-<!-- chapter: Chapter 1: The Dust of Alexandria -->
-
-The library did not burn in a single cataclysm of flame. It eroded slowly, piece by precious piece.
-
-<!-- chapter: Chapter 2: The Northern Passage -->
-
-Three weeks into the voyage across the Aegean, the winds turned merciless.
-
-<!-- chapter: Chapter 3: The Hidden Vault -->
-
-Beneath the monastery foundations, a single copper key clicked into place.
-`,
+    SAMPLE_NOVEL,
     "the-chroniclers-compass.md",
   );
   state.activeChapter = 0;
@@ -69,7 +51,6 @@ Beneath the monastery foundations, a single copper key clicked into place.
   void storeHandle(null);
   callbacks.render();
   callbacks.saveLocal();
-  callbacks.modal.classList.add("hidden");
 }
 
 export function addChapter(

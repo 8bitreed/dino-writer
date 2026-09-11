@@ -1,0 +1,80 @@
+@import "../../assets/app.css";
+
+.welcome-mode {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.welcome-container {
+  width: 100%;
+  max-width: 32rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.welcome-header {
+  text-align: center;
+}
+
+.welcome-header .brand {
+  font-size: 1.75rem;
+  text-decoration: none;
+}
+
+.welcome-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.welcome-card h2 {
+  font-size: 1.5rem;
+}
+
+.welcome-card p {
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.welcome-actions .button {
+  width: 100%;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+}
+
+.welcome-footer {
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.welcome-footer .return-link {
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.welcome-footer .return-link:hover {
+  color: var(--text);
+}
+
+@media (max-width: 36rem) {
+  .welcome-card {
+    padding: 1.25rem;
+  }
+}

@@ -105,3 +105,20 @@ export function serialize(manuscript: Manuscript): string {
   );
   return `---\n${JSON.stringify(metadata, null, 2)}\n---\n\n${chapters.join("\n\n")}\n`;
 }
+
+export const SAMPLE_NOVEL = `---
+{"title":"The Chronicler's Compass","author":"Writasaurus"}
+---
+
+<!-- chapter: Chapter 1: The Dust of Alexandria -->
+
+The library did not burn in a single cataclysm of flame. It eroded slowly, piece by precious piece.
+
+<!-- chapter: Chapter 2: The Northern Passage -->
+
+Three weeks into the voyage across the Aegean, the winds turned merciless.
+
+<!-- chapter: Chapter 3: The Hidden Vault -->
+
+Beneath the monastery foundations, a single copper key clicked into place.
+`;
