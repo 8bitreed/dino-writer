@@ -1,0 +1,54 @@
+@import "../../assets/app.css";
+
+.about-mode {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.about-container {
+  width: 100%;
+  max-width: 36rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.about-header {
+  text-align: center;
+}
+
+.about-header .brand {
+  font-size: 1.75rem;
+}
+
+.about-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.about-card h2 {
+  font-size: 1.5rem;
+}
+
+.about-card p {
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.about-actions {
+  margin-top: 0.5rem;
+}
+
+.return-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
